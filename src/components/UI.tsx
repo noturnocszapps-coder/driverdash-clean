@@ -57,22 +57,24 @@ export const Button = ({
   );
 };
 
-export const Input = ({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
+export const Input = ({ className, value, ...props }: React.InputHTMLAttributes<HTMLInputElement>) => (
   <input 
     className={cn(
       "w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all",
       className
     )}
+    value={value === null ? '' : value}
     {...props}
   />
 );
 
-export const Select = ({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
+export const Select = ({ className, children, value, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) => (
   <select 
     className={cn(
       "w-full px-4 py-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all appearance-none",
       className
     )}
+    value={value === null ? '' : value}
     {...props}
   >
     {children}

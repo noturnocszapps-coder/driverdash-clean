@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Car, Receipt, Fuel, Wrench, BarChart3, Settings, Calculator, Smartphone, Target, Navigation, Gauge, LogOut, LogIn, User } from 'lucide-react';
+import { LayoutDashboard, Car, Receipt, Fuel, Wrench, BarChart3, Settings, Calculator, Smartphone, Target, Navigation, Gauge, LogOut, LogIn, User, DollarSign, History } from 'lucide-react';
 import { cn } from '../utils';
 import { useDriverStore } from '../store';
 import { supabase } from '../lib/supabase';
@@ -9,19 +9,23 @@ import { Button } from './UI';
 
 const navItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
+  { icon: DollarSign, label: 'Faturamento', path: '/faturamento' },
+  { icon: History, label: 'Corridas Detalhadas', path: '/rides' },
+  { icon: Smartphone, label: 'Entregas/Logística', path: '/work-logs' },
+  { icon: Receipt, label: 'Despesas', path: '/expenses' },
+  { icon: Fuel, label: 'Abastecimento', path: '/fuel' },
+  { icon: Wrench, label: 'Manutenção', path: '/maintenance' },
+  { icon: BarChart3, label: 'Relatórios', path: '/reports' },
   { icon: Target, label: 'Projeção', path: '/projection' },
   { icon: Calculator, label: 'Simulador', path: '/simulator' },
   { icon: Navigation, label: 'Rastrear', path: '/tracking' },
   { icon: Smartphone, label: 'Comparar', path: '/comparison' },
-  { icon: Car, label: 'Corridas', path: '/rides' },
-  { icon: BarChart3, label: 'Relatórios', path: '/reports' },
   { icon: Gauge, label: 'Custo Carro', path: '/vehicle-costs' },
 ];
 
 const bottomNavItems = [
   { icon: LayoutDashboard, label: 'Início', path: '/dashboard' },
-  { icon: Navigation, label: 'Rastrear', path: '/tracking' },
-  { icon: Car, label: 'Corridas', path: '/rides' },
+  { icon: DollarSign, label: 'Faturamento', path: '/faturamento' },
   { icon: BarChart3, label: 'Relatórios', path: '/reports' },
   { icon: Settings, label: 'Ajustes', path: '/settings' },
 ];

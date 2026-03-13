@@ -25,8 +25,39 @@ export const SyncManager = () => {
               dailyGoal: profile.daily_goal,
               vehicle: profile.car_model || profile.vehicle || 'Veículo',
               kmPerLiter: profile.km_per_liter,
-              fuelPrice: profile.fuel_price
+              fuelPrice: profile.fuel_price,
+              activePlatforms: profile.active_platforms || ['uber_car'],
+              transportMode: profile.transport_mode || 'car',
+              dashboardMode: profile.dashboard_mode || 'merged'
             }
+          });
+        }
+
+        // Fetch Work Logs
+        const { data: workLogs } = await supabase
+          .from('work_logs')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (workLogs) {
+          importData({
+            workLogs: workLogs.map(l => ({
+              id: l.id,
+              user_id: l.user_id,
+              platform_type: l.platform_type as any,
+              date: l.date,
+              gross_amount: Number(l.gross_amount),
+              passenger_cash_amount: Number(l.passenger_cash_amount),
+              tips_amount: Number(l.tips_amount),
+              bonus_amount: Number(l.bonus_amount),
+              hours_worked: Number(l.hours_worked),
+              km_driven: Number(l.km_driven),
+              deliveries_count: l.deliveries_count ? Number(l.deliveries_count) : undefined,
+              rides_count: l.rides_count ? Number(l.rides_count) : undefined,
+              packages_count: l.packages_count ? Number(l.packages_count) : undefined,
+              routes_count: l.routes_count ? Number(l.routes_count) : undefined,
+              notes: l.notes || ''
+            }))
           });
         }
 
@@ -107,9 +138,39 @@ export const SyncManager = () => {
           });
         }
 
+        // Fetch Faturamento Logs
+        const { data: faturamento } = await supabase
+          .from('faturamento_logs')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (faturamento) {
+          console.log(`[SyncManager] Fetched ${faturamento.length} faturamento logs from Supabase`);
+          importData({
+            faturamentoLogs: faturamento.map(l => ({
+              id: l.id,
+              user_id: l.user_id,
+              date: l.date,
+              vehicle_mode: l.vehicle_mode as any,
+              uber_amount: Number(l.uber_amount),
+              noventanove_amount: Number(l.noventanove_amount),
+              indriver_amount: Number(l.indriver_amount),
+              extra_amount: Number(l.extra_amount),
+              km_total: Number(l.km_total),
+              active_hours_total: Number(l.active_hours_total),
+              fuel_total: Number(l.fuel_total),
+              fuel_price: Number(l.fuel_price),
+              fuel_type: l.fuel_type as any,
+              additional_expense: Number(l.additional_expense),
+              notes: l.notes || ''
+            }))
+          });
+        }
+
+        console.log('[SyncManager] Sync completed successfully');
         setSyncStatus('synced');
       } catch (err) {
-        console.error('Error fetching data from Supabase:', err);
+        console.error('[SyncManager] Error fetching data from Supabase:', err);
         setSyncStatus('offline');
       }
     };

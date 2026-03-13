@@ -47,7 +47,7 @@ export const QuickRideButton = () => {
               <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-bold flex items-center gap-2">
                   <Zap size={20} className="text-emerald-600" />
-                  Registro Rápido
+                  Corrida Rápida (Opcional)
                 </h3>
                 <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600">
                   <X size={20} />
