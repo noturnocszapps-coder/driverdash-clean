@@ -1,16 +1,47 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useDriverStore } from '../store';
-import { Card, CardContent, Button, Input } from '../components/UI';
-import { Settings as SettingsIcon, User, Car, Target, Trash2, LogOut, Download, Smartphone, Database, Upload, FileJson, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Info } from 'lucide-react';
+import { Card, CardContent, Button, Input, Select } from '../components/UI';
+import { Settings as SettingsIcon, User, Car, Target, Trash2, LogOut, Download, Smartphone, Database, Upload, FileJson, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Info, Zap, Package, MapPin, LayoutGrid, Layers } from 'lucide-react';
 import { downloadFile } from '../utils';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { PlatformType, TransportMode } from '../types';
+
+const PLATFORMS: { id: PlatformType; label: string; icon: any }[] = [
+  { id: 'uber_car', label: 'Uber (Carro)', icon: Car },
+  { id: 'noventanove_car', label: '99 (Carro)', icon: Car },
+  { id: 'indrive_car', label: 'inDrive (Carro)', icon: Car },
+  { id: 'uber_moto', label: 'Uber Moto', icon: Zap },
+  { id: 'noventanove_moto', label: '99 Moto', icon: Zap },
+  { id: 'indrive_moto', label: 'inDrive Moto', icon: Zap },
+  { id: 'ifood', label: 'iFood', icon: MapPin },
+  { id: 'shopee', label: 'Shopee', icon: Package },
+  { id: 'mercadolivre', label: 'Mercado Livre', icon: Package },
+];
+
+const TRANSPORT_MODES: { id: TransportMode; label: string }[] = [
+  { id: 'car', label: 'Carro' },
+  { id: 'motorcycle', label: 'Moto' },
+  { id: 'bicycle', label: 'Bicicleta' },
+  { id: 'scooter', label: 'Patinete/Scooter' },
+  { id: 'walking', label: 'A pé' },
+];
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { settings, updateSettings, clearData, rides, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus } = useDriverStore();
+  const { settings, updateSettings, clearData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus } = useDriverStore();
   const [isMigrating, setIsMigrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const togglePlatform = (platformId: PlatformType) => {
+    const current = settings.activePlatforms || [];
+    const updated = current.includes(platformId)
+      ? current.filter(id => id !== platformId)
+      : [...current, platformId];
+    
+    if (updated.length === 0) return; // Must have at least one
+    updateSettings({ activePlatforms: updated });
+  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -26,7 +57,7 @@ export const Settings = () => {
   };
 
   const exportBackup = () => {
-    const data = { rides, expenses, fuelings, maintenances, settings };
+    const data = { rides, workLogs, expenses, fuelings, maintenances, settings };
     downloadFile(JSON.stringify(data, null, 2), `driverdash-backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
 
@@ -38,7 +69,7 @@ export const Settings = () => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (data.rides || data.expenses) {
+        if (data.rides || data.expenses || data.workLogs) {
           importData(data);
           alert('Backup importado com sucesso!');
         } else {
@@ -55,10 +86,12 @@ export const Settings = () => {
     if (!user) return;
     setIsMigrating(true);
     setSyncStatus('syncing');
+    console.log('[Settings] Starting manual migration to cloud...');
 
     try {
       // Migrate Trips
       if (rides.length > 0) {
+        console.log(`[Settings] Migrating ${rides.length} rides...`);
         const tripsToInsert = rides.map(r => ({
           id: r.id,
           user_id: user.id,
@@ -72,6 +105,50 @@ export const Settings = () => {
           passenger_paid_amount: r.passengerPaid
         }));
         await supabase.from('trips').upsert(tripsToInsert);
+      }
+
+      // Migrate Work Logs
+      if (workLogs.length > 0) {
+        const logsToInsert = workLogs.map(l => ({
+          id: l.id,
+          user_id: user.id,
+          platform_type: l.platform_type,
+          date: l.date,
+          gross_amount: l.gross_amount,
+          passenger_cash_amount: l.passenger_cash_amount,
+          tips_amount: l.tips_amount,
+          bonus_amount: l.bonus_amount,
+          hours_worked: l.hours_worked,
+          km_driven: l.km_driven,
+          deliveries_count: l.deliveries_count,
+          rides_count: l.rides_count,
+          packages_count: l.packages_count,
+          routes_count: l.routes_count,
+          notes: l.notes
+        }));
+        await supabase.from('work_logs').upsert(logsToInsert);
+      }
+
+      // Migrate Faturamento Logs
+      if (faturamentoLogs.length > 0) {
+        const fatToInsert = faturamentoLogs.map(l => ({
+          id: l.id,
+          user_id: user.id,
+          date: l.date,
+          vehicle_mode: l.vehicle_mode,
+          uber_amount: l.uber_amount,
+          noventanove_amount: l.noventanove_amount,
+          indriver_amount: l.indriver_amount,
+          extra_amount: l.extra_amount,
+          km_total: l.km_total,
+          active_hours_total: l.active_hours_total,
+          fuel_total: l.fuel_total,
+          fuel_price: l.fuel_price,
+          fuel_type: l.fuel_type,
+          additional_expense: l.additional_expense,
+          notes: l.notes
+        }));
+        await supabase.from('faturamento_logs').upsert(fatToInsert);
       }
 
       // Migrate Expenses
@@ -115,20 +192,25 @@ export const Settings = () => {
       }
 
       // Migrate Settings
+      console.log('[Settings] Migrating profile settings...');
       await supabase.from('profiles').upsert({
         id: user.id,
         name: settings.name,
         vehicle: settings.vehicle,
         daily_goal: settings.dailyGoal,
         km_per_liter: settings.kmPerLiter,
-        fuel_price: settings.fuelPrice
+        fuel_price: settings.fuelPrice,
+        active_platforms: settings.activePlatforms,
+        transport_mode: settings.transportMode,
+        dashboard_mode: settings.dashboardMode
       });
 
+      console.log('[Settings] Migration completed successfully');
       alert('Dados sincronizados com sucesso na nuvem!');
       setSyncStatus('synced');
     } catch (err) {
-      console.error(err);
-      alert('Erro ao sincronizar dados.');
+      console.error('[Settings] Migration error:', err);
+      alert('Erro ao sincronizar dados. Verifique sua conexão.');
       setSyncStatus('offline');
     } finally {
       setIsMigrating(false);
@@ -139,7 +221,7 @@ export const Settings = () => {
     <div className="space-y-6 pb-20 md:pb-6">
       <header>
         <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-zinc-500">Personalize sua experiência</p>
+        <p className="text-zinc-500">Personalize sua experiência Multi-Plataforma</p>
       </header>
 
       {user ? (
@@ -160,7 +242,7 @@ export const Settings = () => {
               </div>
             </div>
             
-            {(rides.length > 0 || expenses.length > 0) && (
+            {(rides.length > 0 || workLogs.length > 0 || expenses.length > 0) && (
               <div className="p-3 bg-white/10 rounded-xl mb-4">
                 <p className="text-xs mb-2">Existem dados locais que podem não estar na nuvem.</p>
                 <Button 
@@ -201,29 +283,96 @@ export const Settings = () => {
         <CardContent className="p-6 space-y-6">
           <div className="space-y-4">
             <h3 className="font-bold flex items-center gap-2">
-              <User size={20} className="text-emerald-600" />
-              Perfil
+              <LayoutGrid size={20} className="text-emerald-600" />
+              Plataformas Ativas
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {PLATFORMS.map(p => {
+                const isActive = settings.activePlatforms?.includes(p.id);
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => togglePlatform(p.id)}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center gap-2",
+                      isActive 
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600" 
+                        : "border-zinc-100 dark:border-zinc-800 text-zinc-500 hover:border-zinc-200"
+                    )}
+                  >
+                    <p.icon size={20} />
+                    <span className="text-[10px] font-bold uppercase leading-tight">{p.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-bold flex items-center gap-2">
+              <Layers size={20} className="text-emerald-600" />
+              Preferências do Painel
             </h3>
             <div className="space-y-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Nome do Motorista</label>
-              <Input 
-                value={settings.name} 
-                onChange={e => updateSettings({ name: e.target.value })}
-              />
+              <label className="text-xs font-bold text-zinc-500 uppercase">Modo de Visualização</label>
+              <Select
+                value={settings.dashboardMode}
+                onChange={e => updateSettings({ dashboardMode: e.target.value as 'merged' | 'segmented' })}
+              >
+                <option value="merged">Combinado (Total de todas plataformas)</option>
+                <option value="segmented">Segmentado (Por plataforma)</option>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="font-bold flex items-center gap-2">
+              <User size={20} className="text-emerald-600" />
+              Perfil e Transporte
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Nome do Motorista</label>
+                <Input 
+                  value={settings.name} 
+                  onChange={e => updateSettings({ name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Modo de Transporte</label>
+                <Select
+                  value={settings.transportMode}
+                  onChange={e => updateSettings({ transportMode: e.target.value as TransportMode })}
+                >
+                  {TRANSPORT_MODES.map(m => (
+                    <option key={m.id} value={m.id}>{m.label}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
           </div>
 
           <div className="space-y-4">
             <h3 className="font-bold flex items-center gap-2">
               <Car size={20} className="text-emerald-600" />
-              Veículo
+              Veículo e Custos
             </h3>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Modelo do Veículo</label>
-              <Input 
-                value={settings.vehicle} 
-                onChange={e => updateSettings({ vehicle: e.target.value })}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Modelo do Veículo</label>
+                <Input 
+                  value={settings.vehicle} 
+                  onChange={e => updateSettings({ vehicle: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-zinc-500 uppercase">Consumo Médio (KM/L)</label>
+                <Input 
+                  type="number"
+                  value={settings.kmPerLiter} 
+                  onChange={e => updateSettings({ kmPerLiter: Number(e.target.value) })}
+                />
+              </div>
             </div>
           </div>
 
@@ -287,9 +436,13 @@ export const Settings = () => {
       </Card>
 
       <div className="text-center py-8">
-        <p className="text-xs text-zinc-500">DriverDash v1.2.0</p>
-        <p className="text-xs text-zinc-400 mt-1">Desenvolvido para motoristas parceiros</p>
+        <p className="text-xs text-zinc-500">DriverDash MultiPlataforma v2.0.0</p>
+        <p className="text-xs text-zinc-400 mt-1">Desenvolvido para motoristas e entregadores parceiros</p>
       </div>
     </div>
   );
 };
+
+function cn(...classes: any[]) {
+  return classes.filter(Boolean).join(' ');
+}

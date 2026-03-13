@@ -57,8 +57,8 @@ export const Rides = () => {
     <div className="space-y-6 pb-20 md:pb-6">
       <header className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold">Corridas</h1>
-          <p className="text-zinc-500">Histórico de faturamento</p>
+          <h1 className="text-2xl font-bold">Corridas Detalhadas</h1>
+          <p className="text-zinc-500">Histórico de faturamento (Opcional)</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => setIsImporting(true)}>
@@ -216,7 +216,7 @@ export const Rides = () => {
                       ride.app === '99' ? "bg-yellow-400 text-black" : 
                       "bg-emerald-600 text-white"
                     )}>
-                      {ride.app[0]}
+                      {ride.app?.[0]}
                     </div>
                     <div>
                       <h3 className="font-bold text-sm">{ride.app}</h3>
