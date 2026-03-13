@@ -135,7 +135,34 @@ CREATE POLICY "Users can view own settings" ON settings FOR SELECT USING (auth.u
 CREATE POLICY "Users can insert own settings" ON settings FOR INSERT WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Users can update own settings" ON settings FOR UPDATE USING (auth.uid() = user_id);
 
--- FUNCTIONS & TRIGGERS
+-- 8. Faturamento Logs Table
+CREATE TABLE faturamento_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users ON DELETE CASCADE NOT NULL,
+  date DATE NOT NULL,
+  vehicle_mode TEXT NOT NULL, -- 'carro', 'moto'
+  uber_amount NUMERIC DEFAULT 0,
+  noventanove_amount NUMERIC DEFAULT 0,
+  indriver_amount NUMERIC DEFAULT 0,
+  extra_amount NUMERIC DEFAULT 0,
+  km_total NUMERIC DEFAULT 0,
+  active_hours_total NUMERIC DEFAULT 0,
+  fuel_total NUMERIC DEFAULT 0,
+  fuel_price NUMERIC DEFAULT 0,
+  fuel_type TEXT,
+  additional_expense NUMERIC DEFAULT 0,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ROW LEVEL SECURITY (RLS)
+ALTER TABLE faturamento_logs ENABLE ROW LEVEL SECURITY;
+
+-- POLICIES
+CREATE POLICY "Users can view own faturamento_logs" ON faturamento_logs FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own faturamento_logs" ON faturamento_logs FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own faturamento_logs" ON faturamento_logs FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own faturamento_logs" ON faturamento_logs FOR DELETE USING (auth.uid() = user_id);
 
 -- Create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
