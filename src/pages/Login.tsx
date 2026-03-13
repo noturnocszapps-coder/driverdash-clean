@@ -57,7 +57,7 @@ export const Login = () => {
               <div>
                 <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Sincronização Indisponível</h3>
                 <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
-                  O login requer configuração do Supabase. Use o modo visitante ou configure as chaves de API.
+                  O login requer configuração do Supabase.
                 </p>
               </div>
             </CardContent>
@@ -87,9 +87,9 @@ export const Login = () => {
                 <label className="text-xs font-bold text-zinc-500 uppercase">E-mail</label>
                 <div className="relative">
                   <Mail size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input 
-                    type="email" 
-                    className="pl-10" 
+                  <Input
+                    type="email"
+                    className="pl-10"
                     placeholder="seu@email.com"
                     value={email}
                     onChange={e => setEmail(e.target.value)}
@@ -102,9 +102,9 @@ export const Login = () => {
                 <label className="text-xs font-bold text-zinc-500 uppercase">Senha</label>
                 <div className="relative">
                   <Lock size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <Input 
-                    type="password" 
-                    className="pl-10" 
+                  <Input
+                    type="password"
+                    className="pl-10"
                     placeholder="••••••••"
                     value={password}
                     onChange={e => setPassword(e.target.value)}
@@ -113,9 +113,9 @@ export const Login = () => {
                 </div>
               </div>
 
-              <Button 
-                type="submit" 
-                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold" 
+              <Button
+                type="submit"
+                className="w-full h-12 bg-emerald-600 hover:bg-emerald-700 font-bold"
                 disabled={loading || !isFormValid}
               >
                 {loading ? <Loader2 className="animate-spin" /> : <><LogIn size={20} className="mr-2" /> Entrar</>}
@@ -126,18 +126,12 @@ export const Login = () => {
               <p className="text-sm text-zinc-500">
                 Não tem uma conta? <Link to="/register" className="text-emerald-600 font-bold hover:underline">Cadastre-se</Link>
               </p>
-              <Link to="/forgot-password" size="sm" className="text-xs text-zinc-400 hover:text-emerald-600 transition-colors">
+              <Link to="/forgot-password" className="text-xs text-zinc-400 hover:text-emerald-600 transition-colors">
                 Esqueci minha senha
               </Link>
             </div>
           </CardContent>
         </Card>
-
-        <div className="text-center">
-          <Button variant="outline" onClick={() => navigate('/dashboard')} className="text-zinc-500 border-zinc-200">
-            Continuar como Visitante (Offline)
-          </Button>
-        </div>
       </div>
     </div>
   );
