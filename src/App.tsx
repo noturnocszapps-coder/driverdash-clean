@@ -14,44 +14,45 @@ import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
 import { Tracking } from './pages/Tracking';
 import { VehicleCosts } from './pages/VehicleCosts';
+import { WorkLogs } from './pages/WorkLogs';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
+import { Faturamento } from './pages/Faturamento';
 import { Sidebar, BottomNav } from './components/Navigation';
 import { QuickRideButton } from './components/QuickRideButton';
 import { SyncIndicator } from './components/SyncIndicator';
 import { SyncManager } from './components/SyncManager';
+import { Footer } from './components/Footer';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { useDriverStore } from './store';
-
-const RequireAuth = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useDriverStore();
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isLanding = location.pathname === '/';
   const isAuth = ['/login', '/register', '/forgot-password'].includes(location.pathname);
 
-  if (isLanding || isAuth) return <>{children}</>;
+  if (isLanding || isAuth) return (
+    <>
+      {children}
+      {isLanding && <Footer />}
+    </>
+  );
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
-      <Sidebar />
-      <main className="flex-1 px-4 py-6 md:px-8 max-w-5xl mx-auto w-full">
-        <div className="flex justify-end mb-4 md:hidden">
-          <SyncIndicator />
-        </div>
-        {children}
-      </main>
+    <div className="flex flex-col min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 px-4 py-6 md:px-8 max-w-5xl mx-auto w-full">
+          <div className="flex justify-end mb-4 md:hidden">
+            <SyncIndicator />
+          </div>
+          {children}
+        </main>
+      </div>
       <QuickRideButton />
       <BottomNav />
+      <Footer />
     </div>
   );
 };
@@ -60,12 +61,9 @@ export default function App() {
   const { setUser, setSyncStatus } = useDriverStore();
 
   useEffect(() => {
-    if (!isSupabaseConfigured) {
-      setUser(null);
-      setSyncStatus('offline');
-      return;
-    }
+    if (!isSupabaseConfigured) return;
 
+    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -74,15 +72,11 @@ export default function App() {
           name: session.user.user_metadata.name,
         });
         setSyncStatus('online');
-      } else {
-        setUser(null);
-        setSyncStatus('offline');
       }
     });
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -97,7 +91,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, [setUser, setSyncStatus]);
+  }, []);
 
   return (
     <Router>
@@ -108,112 +102,21 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-
-          <Route
-            path="/dashboard"
-            element={
-              <RequireAuth>
-                <Dashboard />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/projection"
-            element={
-              <RequireAuth>
-                <GoalProjection />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/consumption"
-            element={
-              <RequireAuth>
-                <FuelConsumption />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/simulator"
-            element={
-              <RequireAuth>
-                <Simulator />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/comparison"
-            element={
-              <RequireAuth>
-                <Comparison />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/rides"
-            element={
-              <RequireAuth>
-                <Rides />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/expenses"
-            element={
-              <RequireAuth>
-                <Expenses />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/fuel"
-            element={
-              <RequireAuth>
-                <FuelingPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/maintenance"
-            element={
-              <RequireAuth>
-                <MaintenancePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <RequireAuth>
-                <Reports />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/tracking"
-            element={
-              <RequireAuth>
-                <Tracking />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/vehicle-costs"
-            element={
-              <RequireAuth>
-                <VehicleCosts />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <RequireAuth>
-                <Settings />
-              </RequireAuth>
-            }
-          />
-
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/faturamento" element={<Faturamento />} />
+          <Route path="/projection" element={<GoalProjection />} />
+          <Route path="/consumption" element={<FuelConsumption />} />
+          <Route path="/simulator" element={<Simulator />} />
+          <Route path="/comparison" element={<Comparison />} />
+          <Route path="/rides" element={<Rides />} />
+          <Route path="/expenses" element={<Expenses />} />
+          <Route path="/fuel" element={<FuelingPage />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/reports" element={<Reports />} />
+          <Route path="/tracking" element={<Tracking />} />
+          <Route path="/vehicle-costs" element={<VehicleCosts />} />
+          <Route path="/work-logs" element={<WorkLogs />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
