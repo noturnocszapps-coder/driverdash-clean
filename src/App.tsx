@@ -24,6 +24,16 @@ import { SyncManager } from './components/SyncManager';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { useDriverStore } from './store';
 
+const RequireAuth = ({ children }: { children: React.ReactNode }) => {
+  const { user } = useDriverStore();
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isLanding = location.pathname === '/';
@@ -50,9 +60,12 @@ export default function App() {
   const { setUser, setSyncStatus } = useDriverStore();
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) {
+      setUser(null);
+      setSyncStatus('offline');
+      return;
+    }
 
-    // Check active sessions and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser({
@@ -61,11 +74,15 @@ export default function App() {
           name: session.user.user_metadata.name,
         });
         setSyncStatus('online');
+      } else {
+        setUser(null);
+        setSyncStatus('offline');
       }
     });
 
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -80,7 +97,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setUser, setSyncStatus]);
 
   return (
     <Router>
@@ -91,19 +108,112 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/projection" element={<GoalProjection />} />
-          <Route path="/consumption" element={<FuelConsumption />} />
-          <Route path="/simulator" element={<Simulator />} />
-          <Route path="/comparison" element={<Comparison />} />
-          <Route path="/rides" element={<Rides />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/fuel" element={<FuelingPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/vehicle-costs" element={<VehicleCosts />} />
-          <Route path="/settings" element={<Settings />} />
+
+          <Route
+            path="/dashboard"
+            element={
+              <RequireAuth>
+                <Dashboard />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/projection"
+            element={
+              <RequireAuth>
+                <GoalProjection />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/consumption"
+            element={
+              <RequireAuth>
+                <FuelConsumption />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/simulator"
+            element={
+              <RequireAuth>
+                <Simulator />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/comparison"
+            element={
+              <RequireAuth>
+                <Comparison />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/rides"
+            element={
+              <RequireAuth>
+                <Rides />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/expenses"
+            element={
+              <RequireAuth>
+                <Expenses />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/fuel"
+            element={
+              <RequireAuth>
+                <FuelingPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/maintenance"
+            element={
+              <RequireAuth>
+                <MaintenancePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <RequireAuth>
+                <Reports />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/tracking"
+            element={
+              <RequireAuth>
+                <Tracking />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/vehicle-costs"
+            element={
+              <RequireAuth>
+                <VehicleCosts />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <RequireAuth>
+                <Settings />
+              </RequireAuth>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
