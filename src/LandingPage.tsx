@@ -1,9 +1,21 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Car, ArrowRight, Shield, TrendingUp, Clock, Smartphone } from 'lucide-react';
 import { Button } from './components/UI';
+import { useDriverStore } from './store';
 
 export const LandingPage = () => {
+  const navigate = useNavigate();
+  const { user } = useDriverStore();
+
+  const handleAccessPanel = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       {/* Header */}
@@ -16,9 +28,6 @@ export const LandingPage = () => {
           <div className="flex items-center gap-4">
             <Link to="/login" className="hidden sm:block text-sm font-bold text-zinc-500 hover:text-emerald-600 transition-colors">
               Entrar
-            </Link>
-            <Link to="/dashboard">
-              <Button variant="secondary">Entrar no Painel</Button>
             </Link>
           </div>
         </div>
@@ -40,11 +49,13 @@ export const LandingPage = () => {
                 Criar Conta Grátis <ArrowRight size={20} />
               </Button>
             </Link>
-            <Link to="/dashboard">
-              <Button variant="outline" className="h-14 px-8 text-lg w-full sm:w-auto border-zinc-200">
-                Acessar Painel
-              </Button>
-            </Link>
+            <Button 
+              variant="outline" 
+              className="h-14 px-8 text-lg w-full sm:w-auto border-zinc-200"
+              onClick={handleAccessPanel}
+            >
+              Acessar Painel
+            </Button>
           </div>
         </div>
       </section>

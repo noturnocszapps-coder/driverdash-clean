@@ -57,6 +57,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+import { ProtectedRoute } from './components/ProtectedRoute';
+
 export default function App() {
   const { setUser, setSyncStatus } = useDriverStore();
 
@@ -102,21 +104,24 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/faturamento" element={<Faturamento />} />
-          <Route path="/projection" element={<GoalProjection />} />
-          <Route path="/consumption" element={<FuelConsumption />} />
-          <Route path="/simulator" element={<Simulator />} />
-          <Route path="/comparison" element={<Comparison />} />
-          <Route path="/rides" element={<Rides />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/fuel" element={<FuelingPage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/tracking" element={<Tracking />} />
-          <Route path="/vehicle-costs" element={<VehicleCosts />} />
-          <Route path="/work-logs" element={<WorkLogs />} />
-          <Route path="/settings" element={<Settings />} />
+          
+          {/* Protected Routes */}
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/faturamento" element={<ProtectedRoute><Faturamento /></ProtectedRoute>} />
+          <Route path="/projection" element={<ProtectedRoute><GoalProjection /></ProtectedRoute>} />
+          <Route path="/consumption" element={<ProtectedRoute><FuelConsumption /></ProtectedRoute>} />
+          <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
+          <Route path="/comparison" element={<ProtectedRoute><Comparison /></ProtectedRoute>} />
+          <Route path="/rides" element={<ProtectedRoute><Rides /></ProtectedRoute>} />
+          <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+          <Route path="/fuel" element={<ProtectedRoute><FuelingPage /></ProtectedRoute>} />
+          <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/tracking" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
+          <Route path="/vehicle-costs" element={<ProtectedRoute><VehicleCosts /></ProtectedRoute>} />
+          <Route path="/work-logs" element={<ProtectedRoute><WorkLogs /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+          
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
