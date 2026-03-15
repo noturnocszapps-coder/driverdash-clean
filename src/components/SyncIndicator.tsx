@@ -8,6 +8,7 @@ export const SyncIndicator = () => {
   if (!user) return null;
 
   const statusConfig = {
+    idle: { icon: Cloud, text: 'Conectado', color: 'text-blue-400' },
     online: { icon: Cloud, text: 'Online', color: 'text-blue-500' },
     offline: { icon: CloudOff, text: 'Offline', color: 'text-zinc-500' },
     syncing: { icon: RefreshCw, text: 'Sincronizando...', color: 'text-amber-500', animate: 'animate-spin' },
