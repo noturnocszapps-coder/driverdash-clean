@@ -122,7 +122,7 @@ export interface TrackingSession {
   duration: number;
 }
 
-export type SyncStatus = 'online' | 'offline' | 'syncing' | 'synced';
+export type SyncStatus = 'idle' | 'online' | 'offline' | 'syncing' | 'synced';
 
 export interface AuthUser {
   id: string;
@@ -174,6 +174,7 @@ export interface DriverState {
   addMaintenance: (maintenance: Omit<Maintenance, 'id'>) => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
   updateTracking: (tracking: Partial<TrackingSession>) => void;
-  importData: (data: { rides?: Ride[], workLogs?: WorkLog[], faturamentoLogs?: FaturamentoLog[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: UserSettings }) => void;
+  importData: (data: { rides?: Ride[], workLogs?: WorkLog[], faturamentoLogs?: FaturamentoLog[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: Partial<UserSettings> }) => void;
+  syncData: () => Promise<void>;
   clearData: () => void;
 }
