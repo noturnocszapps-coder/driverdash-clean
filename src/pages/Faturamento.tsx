@@ -104,6 +104,12 @@ export const Faturamento = () => {
     });
   };
 
+  const handleDelete = (id: string) => {
+    if (window.confirm('Tem certeza que deseja excluir este lançamento?')) {
+      deleteFaturamentoLog(id);
+    }
+  };
+
   const totalRevenue = (Number(formData.uber_amount) || 0) + 
                        (Number(formData.noventanove_amount) || 0) + 
                        (Number(formData.indriver_amount) || 0) + 
@@ -393,7 +399,7 @@ export const Faturamento = () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="text-zinc-500 opacity-0 group-hover:opacity-100"
+                          className="text-zinc-500 md:opacity-0 md:group-hover:opacity-100"
                           onClick={() => handleEdit(log)}
                         >
                           <Edit2 size={16} />
@@ -401,8 +407,8 @@ export const Faturamento = () => {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="text-red-500 opacity-0 group-hover:opacity-100"
-                          onClick={() => deleteFaturamentoLog(log.id)}
+                          className="text-red-500 md:opacity-0 md:group-hover:opacity-100"
+                          onClick={() => handleDelete(log.id)}
                         >
                           <Trash2 size={16} />
                         </Button>
@@ -411,15 +417,15 @@ export const Faturamento = () => {
 
                     <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-50 dark:border-zinc-800/50">
                       <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Uber</p>
-                        <p className="text-xs font-bold">{formatCurrency(log.uber_amount)}</p>
+                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Faturamento</p>
+                        <p className="text-xs font-bold">{formatCurrency(rev)}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">99</p>
-                        <p className="text-xs font-bold">{formatCurrency(log.noventanove_amount)}</p>
+                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Gastos</p>
+                        <p className="text-xs font-bold text-red-500">{formatCurrency(exp)}</p>
                       </div>
                       <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Lucro</p>
+                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Líquido</p>
                         <p className="text-xs font-bold text-blue-600">{formatCurrency(profit)}</p>
                       </div>
                     </div>

@@ -29,7 +29,7 @@ const TRANSPORT_MODES: { id: TransportMode; label: string }[] = [
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { settings, updateSettings, clearData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus } = useDriverStore();
+  const { settings, updateSettings, clearData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus, syncData } = useDriverStore();
   const [isMigrating, setIsMigrating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -208,6 +208,7 @@ export const Settings = () => {
       console.log('[Settings] Migration completed successfully');
       alert('Dados sincronizados com sucesso na nuvem!');
       setSyncStatus('synced');
+      setTimeout(() => setSyncStatus('idle'), 3000);
     } catch (err) {
       console.error('[Settings] Migration error:', err);
       alert('Erro ao sincronizar dados. Verifique sua conexão.');
@@ -238,7 +239,9 @@ export const Settings = () => {
                 </div>
               </div>
               <div className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold uppercase">
-                {syncStatus === 'synced' ? 'Sincronizado' : syncStatus === 'syncing' ? 'Sincronizando...' : 'Offline'}
+                {syncStatus === 'synced' ? 'Sincronizado' : 
+                 syncStatus === 'syncing' ? 'Sincronizando...' : 
+                 syncStatus === 'idle' ? 'Conectado' : 'Offline'}
               </div>
             </div>
             
@@ -389,6 +392,29 @@ export const Settings = () => {
                 onChange={e => updateSettings({ dailyGoal: Number(e.target.value) })}
               />
             </div>
+          </div>
+
+          <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+            <Button 
+              onClick={() => syncData()} 
+              disabled={syncStatus === 'syncing'}
+              className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl shadow-emerald-500/20 gap-2"
+            >
+              {syncStatus === 'syncing' ? (
+                <>
+                  <RefreshCw className="animate-spin" size={20} />
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={20} />
+                  Salvar Configurações
+                </>
+              )}
+            </Button>
+            <p className="text-[10px] text-center text-zinc-500 uppercase font-bold tracking-widest">
+              Sincroniza automaticamente com a nuvem
+            </p>
           </div>
         </CardContent>
       </Card>
