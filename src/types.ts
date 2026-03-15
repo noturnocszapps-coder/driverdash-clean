@@ -177,4 +177,5 @@ export interface DriverState {
   importData: (data: { rides?: Ride[], workLogs?: WorkLog[], faturamentoLogs?: FaturamentoLog[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: Partial<UserSettings> }) => void;
   syncData: () => Promise<void>;
   clearData: () => void;
+  clearCloudData: () => Promise<{ success: boolean; error?: any }>;
 }

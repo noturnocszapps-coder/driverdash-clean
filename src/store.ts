@@ -596,6 +596,34 @@ export const useDriverStore = create<DriverState>()(
           duration: 0,
         },
       }),
+      clearCloudData: async () => {
+        const { user } = get();
+        if (!user || !isSupabaseConfigured) return { success: true };
+        
+        set({ syncStatus: 'syncing' });
+        try {
+          const tables = ['trips', 'work_logs', 'faturamento_logs', 'expenses', 'fuel_logs', 'maintenance_logs'];
+          for (const table of tables) {
+            const { error } = await supabase
+              .from(table)
+              .delete()
+              .eq('user_id', user.id);
+            
+            if (error) throw error;
+          }
+          
+          set({ syncStatus: 'synced' });
+          setTimeout(() => {
+            if (get().syncStatus === 'synced') set({ syncStatus: 'idle' });
+          }, 3000);
+          
+          return { success: true };
+        } catch (error) {
+          console.error('[Store] Error clearing cloud data:', error);
+          set({ syncStatus: 'offline' });
+          return { success: false, error };
+        }
+      },
     }),
     {
       name: 'driver-dash-storage',
