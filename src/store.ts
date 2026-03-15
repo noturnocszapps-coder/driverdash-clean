@@ -600,18 +600,14 @@ export const useDriverStore = create<DriverState>()(
         const { user } = get();
         if (!user || !isSupabaseConfigured) return { success: true };
         
+        console.log('[Store] Calling RPC clear_all_user_operational_data...');
         set({ syncStatus: 'syncing' });
         try {
-          const tables = ['trips', 'work_logs', 'faturamento_logs', 'expenses', 'fuel_logs', 'maintenance_logs'];
-          for (const table of tables) {
-            const { error } = await supabase
-              .from(table)
-              .delete()
-              .eq('user_id', user.id);
-            
-            if (error) throw error;
-          }
+          const { error } = await supabase.rpc('clear_all_user_operational_data');
           
+          if (error) throw error;
+          
+          console.log('[Store] Cloud data cleared successfully via RPC');
           set({ syncStatus: 'synced' });
           setTimeout(() => {
             if (get().syncStatus === 'synced') set({ syncStatus: 'idle' });
@@ -619,7 +615,7 @@ export const useDriverStore = create<DriverState>()(
           
           return { success: true };
         } catch (error) {
-          console.error('[Store] Error clearing cloud data:', error);
+          console.error('[Store] Error clearing cloud data via RPC:', error);
           set({ syncStatus: 'offline' });
           return { success: false, error };
         }
