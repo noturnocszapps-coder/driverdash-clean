@@ -57,20 +57,6 @@ export const Register = () => {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
-        {!isSupabaseConfigured && (
-          <Card className="bg-amber-50 dark:bg-amber-900/10 border-amber-200 dark:border-amber-900/30">
-            <CardContent className="p-4 flex items-start gap-3">
-              <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-              <div>
-                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Sincronização Indisponível</h3>
-                <p className="text-xs text-amber-700 dark:text-amber-500 mt-1">
-                  O cadastro requer configuração do Supabase. Use o modo visitante ou configure as chaves de API.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         <div className="text-center">
           <Link to="/login" className="inline-flex items-center gap-2 text-zinc-500 hover:text-emerald-600 transition-colors mb-8">
             <ArrowLeft size={16} />
