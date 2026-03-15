@@ -29,8 +29,10 @@ const TRANSPORT_MODES: { id: TransportMode; label: string }[] = [
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { settings, updateSettings, clearData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus, syncData } = useDriverStore();
+  const { settings, updateSettings, clearData, clearCloudData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus, syncData } = useDriverStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const togglePlatform = (platformId: PlatformType) => {
     const current = settings.activePlatforms || [];
@@ -48,10 +50,27 @@ export const Settings = () => {
     navigate('/');
   };
 
-  const handleClearData = () => {
-    if (confirm('Tem certeza que deseja apagar todos os dados? Esta ação não pode ser desfeita.')) {
+  const handleClearData = async () => {
+    setIsDeleting(true);
+    try {
+      if (user) {
+        const result = await clearCloudData();
+        if (!result.success) {
+          alert('Erro ao apagar dados da nuvem. Verifique sua conexão e tente novamente.');
+          setIsDeleting(false);
+          return;
+        }
+      }
+      
+      // Clear local data
       clearData();
-      alert('Dados apagados com sucesso.');
+      setShowDeleteConfirm(false);
+      alert('Todos os seus dados foram apagados com sucesso.');
+    } catch (error) {
+      console.error('[Settings] Error clearing data:', error);
+      alert('Ocorreu um erro ao apagar os dados.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -286,11 +305,54 @@ export const Settings = () => {
           <p className="text-sm text-zinc-500">
             Apagar todos os dados de corridas, despesas e abastecimentos salvos localmente.
           </p>
-          <Button variant="danger" onClick={handleClearData} className="w-full">
+          <Button variant="danger" onClick={() => setShowDeleteConfirm(true)} className="w-full">
             Limpar Todos os Dados
           </Button>
         </CardContent>
       </Card>
+
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <Card className="w-full max-w-sm animate-in fade-in zoom-in duration-200 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
+            <CardContent className="p-6 space-y-6">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 mx-auto">
+                <AlertCircle size={32} />
+              </div>
+              
+              <div className="text-center space-y-2">
+                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Tem certeza?</h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">
+                  Essa ação vai apagar permanentemente todos os seus dados locais e da nuvem. Essa ação não pode ser desfeita.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <Button 
+                  variant="danger" 
+                  onClick={handleClearData}
+                  disabled={isDeleting}
+                  className="w-full h-12 text-base font-bold"
+                >
+                  {isDeleting ? (
+                    <>
+                      <RefreshCw className="animate-spin" size={18} />
+                      Apagando...
+                    </>
+                  ) : 'Apagar tudo'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="w-full h-12 text-base font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="text-center py-8">
         <p className="text-xs text-zinc-500">DriverDash MultiPlataforma v2.0.0</p>
