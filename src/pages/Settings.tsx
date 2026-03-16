@@ -1,48 +1,28 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useDriverStore } from '../store';
 import { Card, CardContent, Button, Input, Select } from '../components/UI';
-import { Settings as SettingsIcon, User, Car, Target, Trash2, LogOut, Download, Smartphone, Database, Upload, FileJson, Cloud, CloudOff, RefreshCw, CheckCircle, AlertCircle, Info, Zap, Package, MapPin, LayoutGrid, Layers } from 'lucide-react';
+import { 
+  User, Car, Target, Trash2, LogOut, Download, Database, 
+  Upload, RefreshCw, AlertCircle, 
+  Zap, ChevronRight, Shield, History, Smartphone, Layout, Globe, ChevronDown
+} from 'lucide-react';
 import { downloadFile } from '../utils';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { PlatformType, TransportMode } from '../types';
-
-const PLATFORMS: { id: PlatformType; label: string; icon: any }[] = [
-  { id: 'uber_car', label: 'Uber (Carro)', icon: Car },
-  { id: 'noventanove_car', label: '99 (Carro)', icon: Car },
-  { id: 'indrive_car', label: 'inDrive (Carro)', icon: Car },
-  { id: 'uber_moto', label: 'Uber Moto', icon: Zap },
-  { id: 'noventanove_moto', label: '99 Moto', icon: Zap },
-  { id: 'indrive_moto', label: 'inDrive Moto', icon: Zap },
-  { id: 'ifood', label: 'iFood', icon: MapPin },
-  { id: 'shopee', label: 'Shopee', icon: Package },
-  { id: 'mercadolivre', label: 'Mercado Livre', icon: Package },
-];
-
-const TRANSPORT_MODES: { id: TransportMode; label: string }[] = [
-  { id: 'car', label: 'Carro' },
-  { id: 'motorcycle', label: 'Moto' },
-  { id: 'bicycle', label: 'Bicicleta' },
-  { id: 'scooter', label: 'Patinete/Scooter' },
-  { id: 'walking', label: 'A pé' },
-];
+import { cn } from '../utils';
+import { motion, AnimatePresence } from 'motion/react';
+import { SyncIndicator } from '../components/SyncIndicator';
 
 export const Settings = () => {
   const navigate = useNavigate();
-  const { settings, updateSettings, clearData, clearCloudData, rides, workLogs, faturamentoLogs, expenses, fuelings, maintenances, importData, user, setUser, syncStatus, setSyncStatus, syncData } = useDriverStore();
+  const { 
+    settings, updateSettings, clearData, clearCloudData, 
+    cycles, importData, user, setUser, syncStatus, syncData 
+  } = useDriverStore();
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-
-  const togglePlatform = (platformId: PlatformType) => {
-    const current = settings.activePlatforms || [];
-    const updated = current.includes(platformId)
-      ? current.filter(id => id !== platformId)
-      : [...current, platformId];
-    
-    if (updated.length === 0) return; // Must have at least one
-    updateSettings({ activePlatforms: updated });
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -61,8 +41,6 @@ export const Settings = () => {
           return;
         }
       }
-      
-      // Clear local data
       clearData();
       setShowDeleteConfirm(false);
       alert('Todos os seus dados foram apagados com sucesso.');
@@ -75,7 +53,7 @@ export const Settings = () => {
   };
 
   const exportBackup = () => {
-    const data = { rides, workLogs, expenses, fuelings, maintenances, settings };
+    const data = { cycles, settings };
     downloadFile(JSON.stringify(data, null, 2), `driverdash-backup-${new Date().toISOString().split('T')[0]}.json`, 'application/json');
   };
 
@@ -87,7 +65,7 @@ export const Settings = () => {
     reader.onload = (event) => {
       try {
         const data = JSON.parse(event.target?.result as string);
-        if (data.rides || data.expenses || data.workLogs) {
+        if (data.cycles || data.settings) {
           importData(data);
           alert('Backup importado com sucesso!');
         } else {
@@ -101,190 +79,119 @@ export const Settings = () => {
   };
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
-      <header>
-        <h1 className="text-2xl font-bold">Configurações</h1>
-        <p className="text-zinc-500">Personalize sua experiência Multi-Plataforma</p>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-8 pb-24 md:pb-8"
+    >
+      <header className="px-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Configurações</p>
+        <h1 className="text-3xl font-black tracking-tighter">Ajustes</h1>
       </header>
 
-      <Card className="bg-blue-600 text-white border-none">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Cloud size={20} />
+      {/* Profile Section */}
+      <section className="space-y-4">
+        <SectionHeader icon={User} title="Perfil" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+          <CardContent className="p-6 space-y-6">
+            <div className="flex items-center gap-4 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+              <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center text-zinc-950 text-2xl font-black">
+                {settings.name?.charAt(0) || '?'}
               </div>
               <div>
-                <h3 className="font-bold">Sincronização Ativa</h3>
-                <p className="text-xs text-blue-100">{user?.email}</p>
+                <h3 className="font-black text-lg tracking-tight">{settings.name || 'Motorista'}</h3>
+                <p className="text-xs text-zinc-500 font-medium">{user?.email}</p>
+                <div className="mt-2">
+                  <SyncIndicator />
+                </div>
               </div>
             </div>
-            <div className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-bold uppercase">
-              {syncStatus === 'synced' ? 'Sincronizado' : 
-               syncStatus === 'syncing' ? 'Sincronizando...' : 
-               syncStatus === 'idle' ? 'Conectado' : 'Offline'}
-            </div>
-          </div>
-          
-          <Button onClick={handleLogout} variant="outline" className="w-full border-white/30 text-white hover:bg-white/10 h-9 text-sm">
-            Sair da Conta
-          </Button>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardContent className="p-6 space-y-6">
-          <div className="space-y-4">
-            <h3 className="font-bold flex items-center gap-2">
-              <LayoutGrid size={20} className="text-emerald-600" />
-              Plataformas Ativas
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {PLATFORMS.map(p => {
-                const isActive = settings.activePlatforms?.includes(p.id);
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => togglePlatform(p.id)}
-                    className={cn(
-                      "flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all text-center gap-2",
-                      isActive 
-                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600" 
-                        : "border-zinc-100 dark:border-zinc-800 text-zinc-500 hover:border-zinc-200"
-                    )}
-                  >
-                    <p.icon size={20} />
-                    <span className="text-[10px] font-bold uppercase leading-tight">{p.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-bold flex items-center gap-2">
-              <Layers size={20} className="text-emerald-600" />
-              Preferências do Painel
-            </h3>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Modo de Visualização</label>
-              <Select
-                value={settings.dashboardMode}
-                onChange={e => updateSettings({ dashboardMode: e.target.value as 'merged' | 'segmented' })}
-              >
-                <option value="merged">Combinado (Total de todas plataformas)</option>
-                <option value="segmented">Segmentado (Por plataforma)</option>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-bold flex items-center gap-2">
-              <User size={20} className="text-emerald-600" />
-              Perfil e Transporte
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase">Nome do Motorista</label>
+            <div className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Nome de Exibição</label>
                 <Input 
                   value={settings.name} 
                   onChange={e => updateSettings({ name: e.target.value })}
+                  className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase">Modo de Transporte</label>
-                <Select
-                  value={settings.transportMode}
-                  onChange={e => updateSettings({ transportMode: e.target.value as TransportMode })}
-                >
-                  {TRANSPORT_MODES.map(m => (
-                    <option key={m.id} value={m.id}>{m.label}</option>
-                  ))}
-                </Select>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="font-bold flex items-center gap-2">
-              <Car size={20} className="text-emerald-600" />
-              Veículo e Custos
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase">Modelo do Veículo</label>
-                <Input 
-                  value={settings.vehicle} 
-                  onChange={e => updateSettings({ vehicle: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-zinc-500 uppercase">Consumo Médio (KM/L)</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Meta Diária (R$)</label>
                 <Input 
                   type="number"
-                  value={settings.kmPerLiter} 
-                  onChange={e => updateSettings({ kmPerLiter: Number(e.target.value) })}
+                  value={settings.dailyGoal} 
+                  onChange={e => updateSettings({ dailyGoal: Number(e.target.value) })}
+                  className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-black text-xl"
                 />
               </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      </section>
 
-          <div className="space-y-4">
-            <h3 className="font-bold flex items-center gap-2">
-              <Target size={20} className="text-emerald-600" />
-              Metas
-            </h3>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-zinc-500 uppercase">Meta Diária (R$)</label>
-              <Input 
-                type="number"
-                value={settings.dailyGoal} 
-                onChange={e => updateSettings({ dailyGoal: Number(e.target.value) })}
-              />
+      {/* Platforms Section */}
+      <section className="space-y-4">
+        <SectionHeader icon={Smartphone} title="Plataformas" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Modo de Transporte</label>
+              <Select
+                value={settings.transportMode}
+                onChange={e => updateSettings({ transportMode: e.target.value as any })}
+                className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+              >
+                <option value="car">Uber / 99 Carro</option>
+                <option value="motorcycle">Uber / 99 Moto</option>
+              </Select>
             </div>
-          </div>
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+              <p className="text-[10px] text-zinc-500 font-bold leading-relaxed uppercase tracking-wider">
+                O DriverDash foca em Uber, 99 e inDrive para garantir a melhor experiência de fechamento financeiro.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-          <div className="space-y-4 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-            <Button 
-              onClick={() => syncData()} 
-              disabled={syncStatus === 'syncing'}
-              className="w-full h-14 text-lg font-bold rounded-2xl shadow-xl shadow-emerald-500/20 gap-2"
-            >
-              {syncStatus === 'syncing' ? (
-                <>
-                  <RefreshCw className="animate-spin" size={20} />
-                  Sincronizando...
-                </>
-              ) : (
-                <>
-                  <CheckCircle size={20} />
-                  Salvar Configurações
-                </>
-              )}
-            </Button>
-            <p className="text-[10px] text-center text-zinc-500 uppercase font-bold tracking-widest">
-              Sincroniza automaticamente com a nuvem
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Panel Preferences */}
+      <section className="space-y-4">
+        <SectionHeader icon={Layout} title="Preferências do Painel" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <p className="text-sm font-bold">Tema do Aplicativo</p>
+                <p className="text-[10px] text-zinc-500 font-medium">Sempre Escuro (Otimizado)</p>
+              </div>
+              <div className="w-10 h-6 bg-emerald-500 rounded-full relative">
+                <div className="absolute right-1 top-1 w-4 h-4 bg-white rounded-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
-      <Card>
-        <CardContent className="p-6 space-y-4">
-          <h3 className="font-bold flex items-center gap-2">
-            <Database size={20} className="text-emerald-600" />
-            Backup e Dados
-          </h3>
-          <p className="text-sm text-zinc-500">
-            Exporte seus dados para segurança ou importe de outro dispositivo.
-          </p>
-          <div className="grid grid-cols-2 gap-4">
-            <Button variant="outline" onClick={exportBackup} className="gap-2">
-              <Download size={18} /> Exportar
-            </Button>
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="gap-2">
-              <Upload size={18} /> Importar
-            </Button>
+      {/* Data Section */}
+      <section className="space-y-4">
+        <SectionHeader icon={Database} title="Dados" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+          <CardContent className="p-6 space-y-4">
+            <SettingsItem 
+              icon={Download} 
+              title="Exportar Backup" 
+              description="Salvar seus dados em um arquivo JSON"
+              onClick={exportBackup}
+              color="text-blue-500"
+            />
+            <SettingsItem 
+              icon={Upload} 
+              title="Importar Backup" 
+              description="Restaurar dados de um arquivo anterior"
+              onClick={() => fileInputRef.current?.click()}
+              color="text-emerald-500"
+            />
             <input 
               type="file" 
               ref={fileInputRef} 
@@ -292,76 +199,226 @@ export const Settings = () => {
               accept=".json"
               onChange={handleImportBackup}
             />
-          </div>
-        </CardContent>
-      </Card>
+            <SettingsItem 
+              icon={RefreshCw} 
+              title="Sincronizar Agora" 
+              description="Forçar atualização com a nuvem"
+              onClick={() => syncData()}
+              color="text-zinc-400"
+              loading={syncStatus === 'syncing'}
+            />
+          </CardContent>
+        </Card>
+      </section>
 
-      <Card className="border-red-200 dark:border-red-900/30">
-        <CardContent className="p-6 space-y-4">
-          <h3 className="font-bold text-red-500 flex items-center gap-2">
-            <Trash2 size={20} />
-            Zona de Perigo
-          </h3>
-          <p className="text-sm text-zinc-500">
-            Apagar todos os dados de corridas, despesas e abastecimentos salvos localmente.
-          </p>
-          <Button variant="danger" onClick={() => setShowDeleteConfirm(true)} className="w-full">
-            Limpar Todos os Dados
-          </Button>
-        </CardContent>
-      </Card>
+      {/* System Section (Patch Notes) */}
+      <section className="space-y-4">
+        <SectionHeader icon={History} title="Sistema" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
+          <CardContent className="p-0">
+            <PatchNotes />
+          </CardContent>
+        </Card>
+      </section>
 
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <Card className="w-full max-w-sm animate-in fade-in zoom-in duration-200 bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800">
-            <CardContent className="p-6 space-y-6">
-              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center text-red-600 mx-auto">
-                <AlertCircle size={32} />
+      {/* Danger Zone */}
+      <section className="space-y-4">
+        <SectionHeader icon={Shield} title="Zona de Perigo" />
+        <Card className="border-none bg-red-50 dark:bg-red-500/5 border-red-100 dark:border-red-500/10">
+          <CardContent className="p-6 space-y-4">
+            <button 
+              onClick={() => setShowDeleteConfirm(true)}
+              className="flex items-center justify-between w-full group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
+                  <Trash2 size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-red-500">Limpar Todos os Dados</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Apagar histórico local e nuvem</p>
+                </div>
               </div>
-              
-              <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold text-zinc-900 dark:text-white">Tem certeza?</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">
-                  Essa ação vai apagar permanentemente todos os seus dados locais e da nuvem. Essa ação não pode ser desfeita.
-                </p>
+              <ChevronRight size={18} className="text-red-300 group-hover:text-red-500 transition-colors" />
+            </button>
+            <div className="h-px bg-red-100 dark:bg-red-500/10" />
+            <button 
+              onClick={handleLogout}
+              className="flex items-center justify-between w-full group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+                  <LogOut size={20} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-zinc-900 dark:text-white">Sair da Conta</p>
+                  <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Desconectar deste dispositivo</p>
+                </div>
               </div>
+              <ChevronRight size={18} className="text-zinc-300 group-hover:text-zinc-950 dark:group-hover:text-white transition-colors" />
+            </button>
+          </CardContent>
+        </Card>
+      </section>
 
-              <div className="flex flex-col gap-2">
-                <Button 
-                  variant="danger" 
-                  onClick={handleClearData}
-                  disabled={isDeleting}
-                  className="w-full h-12 text-base font-bold"
-                >
-                  {isDeleting ? (
-                    <>
-                      <RefreshCw className="animate-spin" size={18} />
-                      Apagando...
-                    </>
-                  ) : 'Apagar tudo'}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => setShowDeleteConfirm(false)}
-                  disabled={isDeleting}
-                  className="w-full h-12 text-base font-bold text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                >
-                  Cancelar
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      <div className="text-center py-8">
-        <p className="text-xs text-zinc-500">DriverDash MultiPlataforma v2.0.0</p>
-        <p className="text-xs text-zinc-400 mt-1">Desenvolvido para motoristas e entregadores parceiros</p>
+      <div className="text-center py-8 space-y-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-300 dark:text-zinc-800">DriverDash Beta</p>
+        <p className="text-[10px] text-zinc-400 font-bold">v2.1.0 • Build 20260316</p>
+        <p className="text-[10px] text-zinc-500 font-medium mt-2">Versão Beta — o aplicativo está em fase de testes. Atualmente é gratuito enquanto coletamos feedback e corrigimos possíveis bugs.</p>
       </div>
-    </div>
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowDeleteConfirm(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="fixed inset-0 m-auto w-full max-w-xs h-fit z-[110] p-6"
+            >
+              <Card className="border-none bg-white dark:bg-zinc-900 shadow-2xl rounded-[2.5rem] overflow-hidden">
+                <CardContent className="p-8 space-y-6">
+                  <div className="w-20 h-20 bg-red-100 dark:bg-red-500/10 rounded-[2rem] flex items-center justify-center text-red-500 mx-auto">
+                    <AlertCircle size={40} />
+                  </div>
+                  
+                  <div className="text-center space-y-2">
+                    <h3 className="text-2xl font-black tracking-tighter">Apagar tudo?</h3>
+                    <p className="text-sm text-zinc-500 font-medium leading-relaxed">
+                      Essa ação é irreversível. Todos os seus ciclos e configurações serão removidos.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <Button 
+                      variant="danger" 
+                      onClick={handleClearData}
+                      disabled={isDeleting}
+                      className="w-full h-16 text-lg font-black rounded-2xl shadow-xl shadow-red-500/20"
+                    >
+                      {isDeleting ? 'Apagando...' : 'Confirmar'}
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => setShowDeleteConfirm(false)}
+                      disabled={isDeleting}
+                      className="w-full h-12 text-sm font-bold text-zinc-400"
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
-function cn(...classes: any[]) {
-  return classes.filter(Boolean).join(' ');
-}
+const SectionHeader = ({ icon: Icon, title }: any) => (
+  <div className="flex items-center gap-2 px-1">
+    <Icon size={16} className="text-emerald-500" />
+    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">{title}</h3>
+  </div>
+);
+
+const SettingsItem = ({ icon: Icon, title, description, onClick, color, loading }: any) => (
+  <button 
+    onClick={onClick}
+    className="flex items-center justify-between w-full group py-2"
+  >
+    <div className="flex items-center gap-4">
+      <div className={cn("w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center transition-colors", color)}>
+        <Icon size={20} className={cn(loading && "animate-spin")} />
+      </div>
+      <div className="text-left">
+        <p className="text-sm font-bold tracking-tight">{title}</p>
+        <p className="text-[10px] text-zinc-500 font-medium uppercase tracking-wider">{description}</p>
+      </div>
+    </div>
+    <ChevronRight size={18} className="text-zinc-200 group-hover:text-emerald-500 transition-colors" />
+  </button>
+);
+
+const PatchNotes = () => {
+  const [expanded, setExpanded] = useState<string | null>('2.1.0');
+
+  const versions = [
+    {
+      id: '2.1.0',
+      date: '16 Mar, 2026',
+      notes: [
+        'Novo sistema de ciclos financeiros de 24h.',
+        'Dashboard focado em performance e progresso.',
+        'Lançamento rápido com modal bottom-sheet.',
+        'Relatórios semanais com mix de plataformas.',
+        'Interface premium inspirada em SaaS modernos.'
+      ]
+    },
+    {
+      id: '2.0.5',
+      date: '10 Mar, 2026',
+      notes: [
+        'Otimização de sincronização com Supabase.',
+        'Correção de erros no login persistente.',
+        'Melhoria na exportação de backup JSON.'
+      ]
+    }
+  ];
+
+  return (
+    <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+      {versions.map((v) => (
+        <div key={v.id} className="overflow-hidden">
+          <button 
+            onClick={() => setExpanded(expanded === v.id ? null : v.id)}
+            className="w-full p-6 flex items-center justify-between hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                <Zap size={16} />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-black tracking-tight">Versão {v.id}</p>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">{v.date}</p>
+              </div>
+            </div>
+            <ChevronDown 
+              size={18} 
+              className={cn("text-zinc-300 transition-transform duration-300", expanded === v.id && "rotate-180")} 
+            />
+          </button>
+          <AnimatePresence>
+            {expanded === v.id && (
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="px-6 pb-6 pt-2 space-y-3">
+                  {v.notes.map((note, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium leading-relaxed">{note}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      ))}
+    </div>
+  );
+};

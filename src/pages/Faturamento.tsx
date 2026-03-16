@@ -1,441 +1,209 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
-import { Card, CardContent, Button, Input, Select } from '../components/UI';
-import { DollarSign, Navigation, Clock, Fuel, Plus, Trash2, History, TrendingUp, TrendingDown, Calculator, Smartphone, Zap, Edit2 } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
 import { formatCurrency, cn } from '../utils';
+import { Card, CardContent, Button } from '../components/UI';
+import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export const Faturamento = () => {
-  const { faturamentoLogs, addFaturamentoLog, updateFaturamentoLog, deleteFaturamentoLog } = useDriverStore();
-  const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    vehicle_mode: 'carro' as 'carro' | 'moto',
-    uber_amount: '',
-    noventanove_amount: '',
-    indriver_amount: '',
-    extra_amount: '',
-    km_total: '',
-    active_hours_total: '',
-    fuel_total: '',
-    fuel_price: '',
-    fuel_type: 'gasolina' as 'gasolina' | 'etanol' | 'energia',
-    additional_expense: '',
-    notes: ''
+  const { cycles, updateCycle, startCycle } = useDriverStore();
+  const navigate = useNavigate();
+  
+  const openCycle = cycles.find(c => c.status === 'open');
+  
+  const [amounts, setAmounts] = useState({
+    uber: 0,
+    noventanove: 0,
+    indriver: 0,
+    extra: 0
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const logData = {
-      date: formData.date,
-      vehicle_mode: formData.vehicle_mode,
-      uber_amount: Number(formData.uber_amount) || 0,
-      noventanove_amount: Number(formData.noventanove_amount) || 0,
-      indriver_amount: Number(formData.indriver_amount) || 0,
-      extra_amount: Number(formData.extra_amount) || 0,
-      km_total: Number(formData.km_total) || 0,
-      active_hours_total: Number(formData.active_hours_total) || 0,
-      fuel_total: Number(formData.fuel_total) || 0,
-      fuel_price: Number(formData.fuel_price) || 0,
-      fuel_type: formData.fuel_type,
-      additional_expense: Number(formData.additional_expense) || 0,
-      notes: formData.notes
-    };
+  useEffect(() => {
+    if (openCycle) {
+      setAmounts({
+        uber: openCycle.uber_amount,
+        noventanove: openCycle.noventanove_amount,
+        indriver: openCycle.indriver_amount,
+        extra: openCycle.extra_amount
+      });
+    }
+  }, [openCycle]);
 
-    if (editingId) {
-      updateFaturamentoLog(editingId, logData);
+  const handleSave = () => {
+    if (!openCycle) {
+      const newCycleId = startCycle();
+      updateCycle(newCycleId, {
+        uber_amount: amounts.uber,
+        noventanove_amount: amounts.noventanove,
+        indriver_amount: amounts.indriver,
+        extra_amount: amounts.extra
+      });
     } else {
-      addFaturamentoLog(logData);
+      updateCycle(openCycle.id, {
+        uber_amount: amounts.uber,
+        noventanove_amount: amounts.noventanove,
+        indriver_amount: amounts.indriver,
+        extra_amount: amounts.extra
+      });
     }
-
-    setIsAdding(false);
-    setEditingId(null);
-    setFormData({
-      ...formData,
-      uber_amount: '',
-      noventanove_amount: '',
-      indriver_amount: '',
-      extra_amount: '',
-      km_total: '',
-      active_hours_total: '',
-      fuel_total: '',
-      fuel_price: '',
-      additional_expense: '',
-      notes: ''
-    });
+    navigate('/');
   };
 
-  const handleEdit = (log: any) => {
-    setFormData({
-      date: log.date,
-      vehicle_mode: log.vehicle_mode,
-      uber_amount: log.uber_amount.toString(),
-      noventanove_amount: log.noventanove_amount.toString(),
-      indriver_amount: log.indriver_amount.toString(),
-      extra_amount: log.extra_amount.toString(),
-      km_total: log.km_total.toString(),
-      active_hours_total: log.active_hours_total.toString(),
-      fuel_total: log.fuel_total.toString(),
-      fuel_price: log.fuel_price.toString(),
-      fuel_type: log.fuel_type,
-      additional_expense: log.additional_expense.toString(),
-      notes: log.notes || ''
-    });
-    setEditingId(log.id);
-    setIsAdding(true);
+  const total = amounts.uber + amounts.noventanove + amounts.indriver + amounts.extra;
+
+  const updateAmount = (key: keyof typeof amounts, value: number) => {
+    setAmounts(prev => ({ ...prev, [key]: Math.max(0, value) }));
   };
-
-  const handleCancel = () => {
-    setIsAdding(false);
-    setEditingId(null);
-    setFormData({
-      ...formData,
-      uber_amount: '',
-      noventanove_amount: '',
-      indriver_amount: '',
-      extra_amount: '',
-      km_total: '',
-      active_hours_total: '',
-      fuel_total: '',
-      fuel_price: '',
-      additional_expense: '',
-      notes: ''
-    });
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Tem certeza que deseja excluir este lançamento?')) {
-      deleteFaturamentoLog(id);
-    }
-  };
-
-  const totalRevenue = (Number(formData.uber_amount) || 0) + 
-                       (Number(formData.noventanove_amount) || 0) + 
-                       (Number(formData.indriver_amount) || 0) + 
-                       (Number(formData.extra_amount) || 0);
-
-  const totalExpenses = (Number(formData.fuel_total) || 0) + 
-                        (Number(formData.additional_expense) || 0);
-
-  const netProfit = totalRevenue - totalExpenses;
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
-      <header className="flex items-center justify-between">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6 pb-24 md:pb-8"
+    >
+      <header className="flex items-center gap-4 px-1">
+        <button 
+          onClick={() => navigate(-1)}
+          className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm active:scale-90 transition-all"
+        >
+          <ChevronLeft size={24} />
+        </button>
         <div>
-          <h1 className="text-2xl font-bold">Faturamento</h1>
-          <p className="text-zinc-500">Lançamento diário simplificado</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">Lançamento</p>
+          <h1 className="text-2xl font-black tracking-tighter">Fechamento do Ciclo</h1>
         </div>
-        {!isAdding && (
-          <Button onClick={() => setIsAdding(true)} className="gap-2 h-12 px-6 rounded-xl shadow-lg shadow-emerald-500/20">
-            <Plus size={20} /> Novo Lançamento
-          </Button>
-        )}
       </header>
 
-      {isAdding && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          {/* Live Summary - Prominent at top */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-emerald-600 uppercase mb-1">Total</p>
-              <p className="text-lg font-black text-emerald-600">{formatCurrency(totalRevenue)}</p>
-            </div>
-            <div className="bg-red-500/10 border border-red-500/20 p-4 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-red-600 uppercase mb-1">Gastos</p>
-              <p className="text-lg font-black text-red-600">{formatCurrency(totalExpenses)}</p>
-            </div>
-            <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl text-center">
-              <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">Líquido</p>
-              <p className="text-lg font-black text-blue-600">{formatCurrency(netProfit)}</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Date and Vehicle Mode */}
-            <div className="grid grid-cols-1 gap-6">
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-zinc-500 uppercase px-1">Data do Trabalho</label>
-                <Input 
-                  type="date" 
-                  className="h-14 rounded-2xl text-lg font-bold"
-                  value={formData.date} 
-                  onChange={e => setFormData({...formData, date: e.target.value})}
-                  required
-                />
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-xs font-bold text-zinc-500 uppercase px-1">Veículo Utilizado</label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, vehicle_mode: 'carro'})}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2",
-                    formData.vehicle_mode === 'carro' 
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600" 
-                      : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-400"
-                  )}
-                >
-                  <Navigation size={24} />
-                  <span className="font-bold">Carro</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({...formData, vehicle_mode: 'moto'})}
-                  className={cn(
-                    "flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all gap-2",
-                    formData.vehicle_mode === 'moto' 
-                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600" 
-                      : "border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-400"
-                  )}
-                >
-                  <Zap size={24} />
-                  <span className="font-bold">Moto</span>
-                </button>
-              </div>
-            </div>
-            </div>
-
-            {/* Platform Blocks */}
-            <div className="space-y-4">
-              <h3 className="font-bold text-zinc-400 text-xs uppercase px-1 tracking-wider">Ganhos por Plataforma</h3>
-              <div className="grid grid-cols-1 gap-4">
-                {/* Uber Block */}
-                <div className="bg-black text-white p-5 rounded-3xl flex items-center gap-4 shadow-xl">
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                    <Smartphone size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase text-zinc-400">Uber</p>
-                    <input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0 placeholder:text-zinc-700"
-                      value={formData.uber_amount} 
-                      onChange={e => setFormData({...formData, uber_amount: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                {/* 99 Block */}
-                <div className="bg-orange-500 text-white p-5 rounded-3xl flex items-center gap-4 shadow-xl">
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                    <TrendingUp size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase text-orange-100">99 App</p>
-                    <input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0 placeholder:text-orange-300"
-                      value={formData.noventanove_amount} 
-                      onChange={e => setFormData({...formData, noventanove_amount: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                {/* inDrive Block */}
-                <div className="bg-emerald-600 text-white p-5 rounded-3xl flex items-center gap-4 shadow-xl">
-                  <div className="bg-white/10 p-3 rounded-2xl">
-                    <DollarSign size={24} className="text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase text-emerald-100">inDrive</p>
-                    <input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0 placeholder:text-emerald-400"
-                      value={formData.indriver_amount} 
-                      onChange={e => setFormData({...formData, indriver_amount: e.target.value})}
-                    />
-                  </div>
-                </div>
-
-                {/* Extra Block */}
-                <div className="bg-zinc-100 dark:bg-zinc-800 p-5 rounded-3xl flex items-center gap-4">
-                  <div className="bg-zinc-200 dark:bg-zinc-700 p-3 rounded-2xl text-zinc-500">
-                    <Plus size={24} />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-[10px] font-bold uppercase text-zinc-500">Outros / Particular</p>
-                    <input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0 placeholder:text-zinc-300 dark:placeholder:text-zinc-600"
-                      value={formData.extra_amount} 
-                      onChange={e => setFormData({...formData, extra_amount: e.target.value})}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Operational Data */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-5 rounded-3xl shadow-sm">
-                <p className="text-[10px] font-bold uppercase text-zinc-500 mb-2 flex items-center gap-1">
-                  <Navigation size={12} /> KM Total
-                </p>
-                <input 
-                  type="number" step="0.1" placeholder="0.0"
-                  className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0"
-                  value={formData.km_total} 
-                  onChange={e => setFormData({...formData, km_total: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 p-5 rounded-3xl shadow-sm">
-                <p className="text-[10px] font-bold uppercase text-zinc-500 mb-2 flex items-center gap-1">
-                  <Clock size={12} /> Horas
-                </p>
-                <input 
-                  type="number" step="0.1" placeholder="0.0"
-                  className="bg-transparent border-none p-0 text-2xl font-black w-full focus:ring-0"
-                  value={formData.active_hours_total} 
-                  onChange={e => setFormData({...formData, active_hours_total: e.target.value})}
-                  required
-                />
-              </div>
-            </div>
-
-            {/* Expenses Section */}
-            <div className="space-y-4">
-              <h3 className="font-bold text-zinc-400 text-xs uppercase px-1 tracking-wider">Despesas do Dia</h3>
-              <div className="bg-red-50 dark:bg-red-500/5 border border-red-100 dark:border-red-500/10 p-6 rounded-3xl space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-red-600 uppercase">Combustível (R$)</label>
-                    <Input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="text-xl font-bold h-14 rounded-2xl border-red-200 dark:border-red-500/20"
-                      value={formData.fuel_total} 
-                      onChange={e => setFormData({...formData, fuel_total: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-red-600 uppercase">Outras Despesas (R$)</label>
-                    <Input 
-                      type="number" step="0.01" placeholder="0,00"
-                      className="text-xl font-bold h-14 rounded-2xl border-red-200 dark:border-red-500/20"
-                      value={formData.additional_expense} 
-                      onChange={e => setFormData({...formData, additional_expense: e.target.value})}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase">Observações</label>
-                  <Input 
-                    placeholder="Ex: Aluguel, Lavagem, etc."
-                    className="h-14 rounded-2xl"
-                    value={formData.notes} 
-                    onChange={e => setFormData({...formData, notes: e.target.value})}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3 pt-4">
-              <Button type="submit" className="h-16 text-lg font-bold rounded-2xl shadow-xl shadow-emerald-500/20">
-                {editingId ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
-              </Button>
-              <Button type="button" variant="outline" onClick={handleCancel} className="h-14 rounded-2xl">
-                Cancelar
-              </Button>
-            </div>
-          </form>
-        </div>
+      {!openCycle && (
+        <Card className="bg-blue-50 dark:bg-blue-500/5 border-blue-100 dark:border-blue-500/10">
+          <CardContent className="p-5 flex items-start gap-3">
+            <Info className="text-blue-600 shrink-0 mt-0.5" size={18} />
+            <p className="text-xs text-blue-700 dark:text-blue-400 font-medium leading-relaxed">
+              Você não tem um ciclo ativo. Ao salvar, um novo ciclo de 24h será iniciado automaticamente com estes valores.
+            </p>
+          </CardContent>
+        </Card>
       )}
 
-      {/* History List */}
       <div className="space-y-4">
-        <h2 className="font-bold flex items-center gap-2 px-1">
-          <History size={20} className="text-zinc-400" />
-          Histórico Recente
-        </h2>
-        
-        {faturamentoLogs.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center text-zinc-500">
-              <Calculator size={48} className="mx-auto mb-4 opacity-20" />
-              <p>Nenhum faturamento lançado ainda.</p>
-              <Button variant="ghost" onClick={() => setIsAdding(true)} className="mt-4 text-emerald-600">
-                Começar agora
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="space-y-3">
-            {[...faturamentoLogs].sort((a, b) => b.date.localeCompare(a.date)).map((log) => {
-              const rev = log.uber_amount + log.noventanove_amount + log.indriver_amount + log.extra_amount;
-              const exp = log.fuel_total + log.additional_expense;
-              const profit = rev - exp;
-              
-              return (
-                <Card key={log.id} className="group hover:border-emerald-500/30 transition-all">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="text-center min-w-[50px]">
-                          <p className="text-[10px] font-bold text-zinc-400 uppercase">{format(parseISO(log.date), 'MMM')}</p>
-                          <p className="text-lg font-bold">{format(parseISO(log.date), 'dd')}</p>
-                        </div>
-                        <div className="h-8 w-px bg-zinc-100 dark:bg-zinc-800" />
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className={cn(
-                              "text-[10px] font-bold uppercase px-2 py-0.5 rounded-full",
-                              log.vehicle_mode === 'carro' ? "bg-blue-100 text-blue-600" : "bg-orange-100 text-orange-600"
-                            )}>
-                              {log.vehicle_mode}
-                            </span>
-                            <span className="text-sm font-bold text-emerald-600">{formatCurrency(rev)}</span>
-                          </div>
-                          <p className="text-xs text-zinc-500">
-                            {log.km_total}km • {log.active_hours_total}h • {formatCurrency(rev / log.active_hours_total)}/h
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-zinc-500 md:opacity-0 md:group-hover:opacity-100"
-                          onClick={() => handleEdit(log)}
-                        >
-                          <Edit2 size={16} />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-red-500 md:opacity-0 md:group-hover:opacity-100"
-                          onClick={() => handleDelete(log.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-zinc-50 dark:border-zinc-800/50">
-                      <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Faturamento</p>
-                        <p className="text-xs font-bold">{formatCurrency(rev)}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Gastos</p>
-                        <p className="text-xs font-bold text-red-500">{formatCurrency(exp)}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-[9px] font-bold text-zinc-400 uppercase">Líquido</p>
-                        <p className="text-xs font-bold text-blue-600">{formatCurrency(profit)}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+        <PlatformInput 
+          label="Uber" 
+          value={amounts.uber} 
+          onChange={(val: number) => updateAmount('uber', val)}
+          color="border-zinc-900 dark:border-white"
+          accent="bg-zinc-900 dark:bg-white"
+        />
+        <PlatformInput 
+          label="99" 
+          value={amounts.noventanove} 
+          onChange={(val: number) => updateAmount('noventanove', val)}
+          color="border-yellow-500"
+          accent="bg-yellow-500"
+        />
+        <PlatformInput 
+          label="inDrive" 
+          value={amounts.indriver} 
+          onChange={(val: number) => updateAmount('indriver', val)}
+          color="border-emerald-500"
+          accent="bg-emerald-500"
+        />
+        <PlatformInput 
+          label="Extra / Outros" 
+          value={amounts.extra} 
+          onChange={(val: number) => updateAmount('extra', val)}
+          color="border-blue-500"
+          accent="bg-blue-500"
+        />
       </div>
-    </div>
+
+      <Card className="bg-zinc-900 text-white border-none shadow-2xl shadow-zinc-900/20 rounded-[2.5rem] overflow-hidden">
+        <CardContent className="p-8 flex flex-col gap-6">
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Total Geral</p>
+              <p className="text-4xl font-black tracking-tighter">{formatCurrency(total)}</p>
+            </div>
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+              <Smartphone className="text-zinc-500" size={24} />
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleSave}
+            className="w-full h-16 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-500/20 gap-3"
+          >
+            <Save size={20} />
+            Confirmar Fechamento
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="flex items-center gap-3 p-5 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-100 dark:border-zinc-800/50">
+        <AlertCircle size={20} className="text-zinc-400 shrink-0" />
+        <p className="text-[10px] text-zinc-500 font-bold leading-relaxed uppercase tracking-wider">
+          Insira o valor total bruto que aparece no aplicativo de cada plataforma no momento do seu fechamento.
+        </p>
+      </div>
+    </motion.div>
+  );
+};
+
+const PlatformInput = ({ label, value, onChange, color, accent }: any) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [tempValue, setTempValue] = useState(value.toString());
+
+  useEffect(() => {
+    if (!isEditing) {
+      setTempValue(value.toString());
+    }
+  }, [value, isEditing]);
+
+  const handleBlur = () => {
+    setIsEditing(false);
+    const num = parseFloat(tempValue.replace(',', '.'));
+    onChange(isNaN(num) ? 0 : num);
+  };
+
+  return (
+    <Card className={cn("border-l-4 transition-all border-none bg-white dark:bg-zinc-900 shadow-sm", color)}>
+      <CardContent className="p-5 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={cn("w-2 h-2 rounded-full shadow-sm", accent)} />
+          <span className="font-black text-sm uppercase tracking-widest text-zinc-500">{label}</span>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => onChange(Math.max(0, value - 10))}
+            className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-90 transition-all"
+          >
+            <Minus size={18} />
+          </button>
+          
+          <div className="relative w-28">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">R$</span>
+            <input 
+              type="text"
+              inputMode="decimal"
+              value={isEditing ? tempValue : value}
+              onChange={(e) => {
+                setTempValue(e.target.value.replace(/[^0-9,.]/g, ''));
+                if (!isEditing) setIsEditing(true);
+              }}
+              onBlur={handleBlur}
+              className="w-full bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl py-3 pl-8 pr-3 text-right font-black text-lg tracking-tight focus:ring-2 focus:ring-emerald-500 transition-all"
+            />
+          </div>
+
+          <button 
+            onClick={() => onChange(value + 10)}
+            className="w-10 h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 active:scale-90 transition-all"
+          >
+            <Plus size={18} />
+          </button>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
