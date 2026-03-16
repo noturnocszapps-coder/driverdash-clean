@@ -4,14 +4,11 @@ export type PlatformType =
   | 'indrive_car' 
   | 'uber_moto' 
   | 'noventanove_moto' 
-  | 'indrive_moto' 
-  | 'ifood' 
-  | 'shopee' 
-  | 'mercadolivre';
+  | 'indrive_moto';
 
-export type TransportMode = 'car' | 'motorcycle' | 'bicycle' | 'scooter' | 'walking';
+export type TransportMode = 'car' | 'motorcycle';
 
-export type AppType = 'Uber' | '99' | 'Particular';
+export type AppType = 'Uber' | '99' | 'inDrive' | 'Particular';
 
 export type ExpenseCategory = 
   | 'combustível' 
@@ -33,6 +30,21 @@ export interface Ride {
   onlineHours: number;
   kmDriven: number;
   passengerPaid?: number;
+  notes?: string;
+}
+
+export interface Cycle {
+  id: string;
+  user_id: string;
+  start_time: string;
+  end_time?: string;
+  uber_amount: number;
+  noventanove_amount: number;
+  indriver_amount: number;
+  extra_amount: number;
+  total_amount: number;
+  status: 'open' | 'closed';
+  created_at?: string;
 }
 
 export interface WorkLog {
@@ -155,6 +167,7 @@ export interface DriverState {
   rides: Ride[];
   workLogs: WorkLog[];
   faturamentoLogs: FaturamentoLog[];
+  cycles: Cycle[];
   expenses: Expense[];
   fuelings: Fueling[];
   maintenances: Maintenance[];
@@ -162,19 +175,20 @@ export interface DriverState {
   tracking: TrackingSession;
   setUser: (user: AuthUser | null) => void;
   setSyncStatus: (status: SyncStatus) => void;
-  addRide: (ride: Omit<Ride, 'id'>) => void;
-  addWorkLog: (log: Omit<WorkLog, 'id' | 'user_id'>) => void;
-  addFaturamentoLog: (log: Omit<FaturamentoLog, 'id' | 'user_id'>) => void;
-  updateFaturamentoLog: (id: string, log: Partial<FaturamentoLog>) => void;
-  deleteWorkLog: (id: string) => void;
-  deleteRide: (id: string) => void;
-  deleteFaturamentoLog: (id: string) => void;
+  
+  // Cycle methods
+  startCycle: () => string;
+  closeCycle: (id: string) => void;
+  updateCycle: (id: string, data: Partial<Cycle>) => void;
+  addCycleAmount: (id: string, platform: 'uber' | 'noventanove' | 'indriver' | 'extra', amount: number) => void;
+  checkAndCloseCycles: () => void;
+
   addExpense: (expense: Omit<Expense, 'id'>) => void;
   addFueling: (fueling: Omit<Fueling, 'id'>) => void;
   addMaintenance: (maintenance: Omit<Maintenance, 'id'>) => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
   updateTracking: (tracking: Partial<TrackingSession>) => void;
-  importData: (data: { rides?: Ride[], workLogs?: WorkLog[], faturamentoLogs?: FaturamentoLog[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: Partial<UserSettings> }) => void;
+  importData: (data: { cycles?: Cycle[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: Partial<UserSettings> }) => void;
   syncData: () => Promise<void>;
   clearData: () => void;
   clearCloudData: () => Promise<{ success: boolean; error?: any }>;

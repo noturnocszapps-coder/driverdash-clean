@@ -2,30 +2,19 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { LandingPage } from './LandingPage';
 import { Dashboard } from './pages/Dashboard';
-import { GoalProjection } from './pages/GoalProjection';
-import { FuelConsumption } from './pages/FuelConsumption';
-import { Simulator } from './pages/Simulator';
-import { Comparison } from './pages/Comparison';
-import { Rides } from './pages/Rides';
-import { Expenses } from './pages/Expenses';
-import { FuelingPage } from './pages/Fueling';
-import { MaintenancePage } from './pages/Maintenance';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
-import { Tracking } from './pages/Tracking';
-import { VehicleCosts } from './pages/VehicleCosts';
-import { WorkLogs } from './pages/WorkLogs';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { ForgotPassword } from './pages/ForgotPassword';
 import { Faturamento } from './pages/Faturamento';
 import { Sidebar, BottomNav } from './components/Navigation';
-import { QuickRideButton } from './components/QuickRideButton';
 import { SyncIndicator } from './components/SyncIndicator';
 import { SyncManager } from './components/SyncManager';
 import { Footer } from './components/Footer';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { useDriverStore } from './store';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -50,14 +39,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
           {children}
         </main>
       </div>
-      <QuickRideButton />
       <BottomNav />
       <Footer />
     </div>
   );
 };
-
-import { ProtectedRoute } from './components/ProtectedRoute';
 
 export default function App() {
   const { setUser, setSyncStatus } = useDriverStore();
@@ -104,7 +90,7 @@ export default function App() {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setUser, setSyncStatus]);
 
   return (
     <Router>
@@ -119,18 +105,7 @@ export default function App() {
           {/* Protected Routes */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/faturamento" element={<ProtectedRoute><Faturamento /></ProtectedRoute>} />
-          <Route path="/projection" element={<ProtectedRoute><GoalProjection /></ProtectedRoute>} />
-          <Route path="/consumption" element={<ProtectedRoute><FuelConsumption /></ProtectedRoute>} />
-          <Route path="/simulator" element={<ProtectedRoute><Simulator /></ProtectedRoute>} />
-          <Route path="/comparison" element={<ProtectedRoute><Comparison /></ProtectedRoute>} />
-          <Route path="/rides" element={<ProtectedRoute><Rides /></ProtectedRoute>} />
-          <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
-          <Route path="/fuel" element={<ProtectedRoute><FuelingPage /></ProtectedRoute>} />
-          <Route path="/maintenance" element={<ProtectedRoute><MaintenancePage /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
-          <Route path="/tracking" element={<ProtectedRoute><Tracking /></ProtectedRoute>} />
-          <Route path="/vehicle-costs" element={<ProtectedRoute><VehicleCosts /></ProtectedRoute>} />
-          <Route path="/work-logs" element={<ProtectedRoute><WorkLogs /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           
           <Route path="*" element={<Navigate to="/" replace />} />
