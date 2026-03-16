@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useDriverStore } from '../store';
-import { formatCurrency, cn } from '../utils';
+import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
 import { Card, CardContent } from '../components/UI';
 import { 
   TrendingUp, Calendar, ChevronRight, BarChart3, Award, Zap, Download, Filter
@@ -13,7 +13,8 @@ import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'rechar
 import { motion } from 'motion/react';
 
 export const Reports = () => {
-  const { cycles } = useDriverStore();
+  const { cycles, settings } = useDriverStore();
+  const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
   
   const today = startOfDay(new Date());
   
@@ -23,16 +24,23 @@ export const Reports = () => {
       const date = addDays(start, i);
       const dayCycles = cycles.filter(c => isSameDay(parseISO(c.start_time), date));
       const dayRevenue = dayCycles.reduce((acc, c) => acc + c.total_amount, 0);
+      const dayExpenses = dayCycles.reduce((acc, c) => acc + (c.total_expenses || 0), 0);
       
       const uber = dayCycles.reduce((acc, c) => acc + c.uber_amount, 0);
       const noventanove = dayCycles.reduce((acc, c) => acc + c.noventanove_amount, 0);
       const indriver = dayCycles.reduce((acc, c) => acc + c.indriver_amount, 0);
       const extra = dayCycles.reduce((acc, c) => acc + c.extra_amount, 0);
 
+      // Only apply fixed cost if there was activity
+      const fixedCost = dayRevenue > 0 ? dailyFixed : 0;
+      const totalDayExpenses = dayExpenses + fixedCost;
+
       return {
         name: format(date, 'EEE', { locale: ptBR }),
         fullName: format(date, "dd 'de' MMM", { locale: ptBR }),
         value: dayRevenue,
+        expenses: totalDayExpenses,
+        profit: dayRevenue - totalDayExpenses,
         uber,
         noventanove,
         indriver,
@@ -40,10 +48,12 @@ export const Reports = () => {
         date: date
       };
     });
-  }, [cycles, today]);
+  }, [cycles, today, dailyFixed]);
 
   const stats = useMemo(() => {
     const total = currentWeek.reduce((acc, d) => acc + d.value, 0);
+    const totalExpenses = currentWeek.reduce((acc, d) => acc + d.expenses, 0);
+    const totalProfit = total - totalExpenses;
     const avg = total / 7;
     const sorted = [...currentWeek].sort((a, b) => b.value - a.value);
     
@@ -56,6 +66,8 @@ export const Reports = () => {
 
     return {
       total,
+      totalExpenses,
+      totalProfit,
       avg,
       best: sorted[0],
       platformTotals
@@ -91,9 +103,9 @@ export const Reports = () => {
 
       {/* Weekly Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
-        <SummaryCard label="Total" value={formatCurrency(stats.total)} color="text-zinc-900 dark:text-white" />
-        <SummaryCard label="Média" value={formatCurrency(stats.avg)} color="text-emerald-500" />
-        <SummaryCard label="Melhor" value={formatCurrency(stats.best.value)} color="text-blue-500" />
+        <SummaryCard label="Faturado" value={formatCurrency(stats.total)} color="text-zinc-900 dark:text-white" />
+        <SummaryCard label="Despesas" value={formatCurrency(stats.totalExpenses)} color="text-red-500" />
+        <SummaryCard label="Lucro Total" value={formatCurrency(stats.totalProfit)} color="text-emerald-500" />
       </div>
 
       {/* Main Chart Card */}
@@ -129,6 +141,15 @@ export const Reports = () => {
                           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{data.fullName}</p>
                           <p className="text-xl font-black text-white">{formatCurrency(data.value)}</p>
                           <div className="space-y-2 pt-2 border-t border-white/5">
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                              <span className="text-zinc-500 uppercase">Lucro</span>
+                              <span className="text-emerald-400">{formatCurrency(data.profit)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                              <span className="text-zinc-500 uppercase">Despesas</span>
+                              <span className="text-red-400">{formatCurrency(data.expenses)}</span>
+                            </div>
+                            <div className="pt-1" />
                             <TooltipItem label="Uber" value={data.uber} color="bg-white" />
                             <TooltipItem label="99" value={data.noventanove} color="bg-yellow-500" />
                             <TooltipItem label="inDrive" value={data.indriver} color="bg-emerald-500" />

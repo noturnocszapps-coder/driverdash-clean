@@ -4,9 +4,10 @@ import { Card, CardContent, Button, Input, Select } from '../components/UI';
 import { 
   User, Car, Target, Trash2, LogOut, Download, Database, 
   Upload, RefreshCw, AlertCircle, 
-  Zap, ChevronRight, Shield, History, Smartphone, Layout, Globe, ChevronDown
+  Zap, ChevronRight, Shield, History, Smartphone, Layout, Globe, ChevronDown,
+  DollarSign
 } from 'lucide-react';
-import { downloadFile } from '../utils';
+import { downloadFile, formatCurrency, calculateDailyFixedCost, calculateMonthlyFixedCost } from '../utils';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '../utils';
@@ -173,6 +174,105 @@ export const Settings = () => {
         </Card>
       </section>
 
+      {/* Vehicle Costs Section */}
+      <section className="space-y-4">
+        <SectionHeader icon={Car} title="Custos do Veículo" />
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+          <CardContent className="p-6 space-y-6">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Veículo</label>
+              <Select
+                value={settings.fixedCosts?.vehicleType || 'owned'}
+                onChange={e => updateSettings({ 
+                  fixedCosts: { 
+                    ...(settings.fixedCosts || { vehicleType: 'owned' }), 
+                    vehicleType: e.target.value as any 
+                  } 
+                })}
+                className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+              >
+                <option value="owned">Veículo Próprio</option>
+                <option value="rented">Veículo Alugado</option>
+              </Select>
+            </div>
+
+            {settings.fixedCosts?.vehicleType === 'owned' ? (
+              <div className="grid grid-cols-2 gap-4">
+                <CostInput 
+                  label="Seguro" 
+                  value={settings.fixedCosts?.insurance} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, insurance: val } })} 
+                />
+                <CostInput 
+                  label="IPVA" 
+                  value={settings.fixedCosts?.ipva} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, ipva: val } })} 
+                />
+                <CostInput 
+                  label="Troca de Óleo" 
+                  value={settings.fixedCosts?.oilChange} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, oilChange: val } })} 
+                />
+                <CostInput 
+                  label="Pneus" 
+                  value={settings.fixedCosts?.tires} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, tires: val } })} 
+                />
+                <CostInput 
+                  label="Manutenção" 
+                  value={settings.fixedCosts?.maintenance} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, maintenance: val } })} 
+                />
+                <CostInput 
+                  label="Parcela" 
+                  value={settings.fixedCosts?.financing} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, financing: val } })} 
+                />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Aluguel</label>
+                  <Select
+                    value={settings.fixedCosts?.rentalPeriod || 'weekly'}
+                    onChange={e => updateSettings({ 
+                      fixedCosts: { 
+                        ...(settings.fixedCosts || { vehicleType: 'rented' }), 
+                        rentalPeriod: e.target.value as any 
+                      } 
+                    })}
+                    className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+                  >
+                    <option value="weekly">Semanal</option>
+                    <option value="monthly">Mensal</option>
+                  </Select>
+                </div>
+                <CostInput 
+                  label="Valor do Aluguel" 
+                  value={settings.fixedCosts?.rentalValue} 
+                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, rentalValue: val } })} 
+                />
+              </div>
+            )}
+
+            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+              <div>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Custo Fixo Diário</p>
+                <p className="text-xl font-black text-emerald-500">
+                  {formatCurrency(calculateDailyFixedCost(settings.fixedCosts))}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Mensal</p>
+                <p className="text-sm font-bold text-zinc-400">
+                  {formatCurrency(calculateMonthlyFixedCost(settings.fixedCosts))}
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
       {/* Data Section */}
       <section className="space-y-4">
         <SectionHeader icon={Database} title="Dados" />
@@ -329,6 +429,19 @@ const SectionHeader = ({ icon: Icon, title }: any) => (
   <div className="flex items-center gap-2 px-1">
     <Icon size={16} className="text-emerald-500" />
     <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">{title}</h3>
+  </div>
+);
+
+const CostInput = ({ label, value, onChange }: { label: string, value?: number, onChange: (val: number) => void }) => (
+  <div className="space-y-1.5">
+    <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">{label}</label>
+    <Input 
+      type="number"
+      value={value || ''} 
+      onChange={e => onChange(Number(e.target.value))}
+      className="h-10 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl font-bold text-sm"
+      placeholder="0,00"
+    />
   </div>
 );
 

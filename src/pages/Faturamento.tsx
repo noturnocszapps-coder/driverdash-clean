@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
 import { formatCurrency, cn } from '../utils';
 import { Card, CardContent, Button } from '../components/UI';
-import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone } from 'lucide-react';
+import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone, Fuel, Utensils, MoreHorizontal } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const Faturamento = () => {
@@ -19,6 +19,12 @@ export const Faturamento = () => {
     extra: 0
   });
 
+  const [expenses, setExpenses] = useState({
+    fuel: 0,
+    food: 0,
+    other: 0
+  });
+
   useEffect(() => {
     if (openCycle) {
       setAmounts({
@@ -27,25 +33,30 @@ export const Faturamento = () => {
         indriver: openCycle.indriver_amount,
         extra: openCycle.extra_amount
       });
+      setExpenses({
+        fuel: openCycle.fuel_expense || 0,
+        food: openCycle.food_expense || 0,
+        other: openCycle.other_expense || 0
+      });
     }
   }, [openCycle]);
 
   const handleSave = () => {
+    const cycleData = {
+      uber_amount: amounts.uber,
+      noventanove_amount: amounts.noventanove,
+      indriver_amount: amounts.indriver,
+      extra_amount: amounts.extra,
+      fuel_expense: expenses.fuel,
+      food_expense: expenses.food,
+      other_expense: expenses.other
+    };
+
     if (!openCycle) {
       const newCycleId = startCycle();
-      updateCycle(newCycleId, {
-        uber_amount: amounts.uber,
-        noventanove_amount: amounts.noventanove,
-        indriver_amount: amounts.indriver,
-        extra_amount: amounts.extra
-      });
+      updateCycle(newCycleId, cycleData);
     } else {
-      updateCycle(openCycle.id, {
-        uber_amount: amounts.uber,
-        noventanove_amount: amounts.noventanove,
-        indriver_amount: amounts.indriver,
-        extra_amount: amounts.extra
-      });
+      updateCycle(openCycle.id, cycleData);
     }
     navigate('/');
   };
@@ -87,6 +98,7 @@ export const Faturamento = () => {
       )}
 
       <div className="space-y-4">
+        <SectionHeader icon={Smartphone} title="Faturamento por Plataforma" />
         <PlatformInput 
           label="Uber" 
           value={amounts.uber} 
@@ -115,6 +127,30 @@ export const Faturamento = () => {
           color="border-blue-500"
           accent="bg-blue-500"
         />
+      </div>
+
+      <div className="space-y-4">
+        <SectionHeader icon={Fuel} title="Despesas do Ciclo" />
+        <div className="grid grid-cols-1 gap-3">
+          <ExpenseInput 
+            icon={Fuel}
+            label="Combustível" 
+            value={expenses.fuel} 
+            onChange={(val) => setExpenses(prev => ({ ...prev, fuel: val }))} 
+          />
+          <ExpenseInput 
+            icon={Utensils}
+            label="Alimentação" 
+            value={expenses.food} 
+            onChange={(val) => setExpenses(prev => ({ ...prev, food: val }))} 
+          />
+          <ExpenseInput 
+            icon={MoreHorizontal}
+            label="Outras Despesas" 
+            value={expenses.other} 
+            onChange={(val) => setExpenses(prev => ({ ...prev, other: val }))} 
+          />
+        </div>
       </div>
 
       <Card className="bg-zinc-900 text-white border-none shadow-2xl shadow-zinc-900/20 rounded-[2.5rem] overflow-hidden">
@@ -148,6 +184,36 @@ export const Faturamento = () => {
     </motion.div>
   );
 };
+
+const SectionHeader = ({ icon: Icon, title }: any) => (
+  <div className="flex items-center gap-2 px-1">
+    <Icon size={16} className="text-emerald-500" />
+    <h3 className="text-xs font-black uppercase tracking-widest text-zinc-500">{title}</h3>
+  </div>
+);
+
+const ExpenseInput = ({ icon: Icon, label, value, onChange }: any) => (
+  <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+    <CardContent className="p-4 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-xl bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+          <Icon size={16} />
+        </div>
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</span>
+      </div>
+      <div className="relative w-24">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">R$</span>
+        <input 
+          type="number"
+          value={value || ''}
+          onChange={(e) => onChange(Number(e.target.value))}
+          placeholder="0,00"
+          className="w-full bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl py-2.5 pl-8 pr-3 text-right font-black text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
+        />
+      </div>
+    </CardContent>
+  </Card>
+);
 
 const PlatformInput = ({ label, value, onChange, color, accent }: any) => {
   const [isEditing, setIsEditing] = useState(false);

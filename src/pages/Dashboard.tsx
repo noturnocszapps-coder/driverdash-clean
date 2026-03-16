@@ -1,7 +1,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
-import { formatCurrency, cn } from '../utils';
+import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
 import { Card, CardContent, Button } from '../components/UI';
 import { TrendingUp, Clock, Target, Zap, LayoutGrid, Plus, ChevronRight, Navigation, Calendar, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
@@ -29,6 +29,15 @@ export const Dashboard = () => {
 
   const openCycle = useMemo(() => cycles.find(c => c.status === 'open'), [cycles]);
   
+  const profitStats = useMemo(() => {
+    if (!openCycle) return null;
+    const earnings = openCycle.total_amount || 0;
+    const expenses = (openCycle.fuel_expense || 0) + (openCycle.food_expense || 0) + (openCycle.other_expense || 0);
+    const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
+    const profit = earnings - expenses - dailyFixed;
+    return { earnings, expenses, dailyFixed, profit };
+  }, [openCycle, settings.fixedCosts]);
+
   const cycleProgress = useMemo(() => {
     if (!openCycle) return null;
     const start = new Date(openCycle.start_time);
@@ -125,6 +134,19 @@ export const Dashboard = () => {
               </div>
             )}
           </div>
+
+          {profitStats && (
+            <div className="grid grid-cols-3 gap-4 pt-4 border-t border-white/5">
+              <div className="space-y-0.5">
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Despesas</p>
+                <p className="text-sm font-black text-red-400">{formatCurrency(profitStats.expenses + profitStats.dailyFixed)}</p>
+              </div>
+              <div className="col-span-2 text-right space-y-0.5">
+                <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Lucro Estimado</p>
+                <p className="text-2xl font-black text-emerald-400">{formatCurrency(profitStats.profit)}</p>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-6">
             {openCycle ? (
