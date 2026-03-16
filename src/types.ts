@@ -43,6 +43,10 @@ export interface Cycle {
   indriver_amount: number;
   extra_amount: number;
   total_amount: number;
+  fuel_expense?: number;
+  food_expense?: number;
+  other_expense?: number;
+  total_expenses?: number;
   status: 'open' | 'closed';
   created_at?: string;
 }
@@ -112,6 +116,20 @@ export interface VehicleCosts {
   annualKm: number;
 }
 
+export interface FixedCosts {
+  vehicleType: 'owned' | 'rented';
+  // Owned fields
+  insurance?: number;
+  ipva?: number;
+  oilChange?: number;
+  tires?: number;
+  maintenance?: number;
+  financing?: number;
+  // Rented fields
+  rentalPeriod?: 'weekly' | 'monthly';
+  rentalValue?: number;
+}
+
 export interface UserSettings {
   dailyGoal: number;
   name: string;
@@ -119,6 +137,7 @@ export interface UserSettings {
   kmPerLiter?: number;
   fuelPrice?: number;
   vehicleCosts?: VehicleCosts;
+  fixedCosts?: FixedCosts;
   avgRideValue?: number;
   avgRideKm?: number;
   activePlatforms: PlatformType[];

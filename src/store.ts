@@ -26,6 +26,9 @@ export const useDriverStore = create<DriverState>()(
         activePlatforms: ['uber_car'],
         transportMode: 'car',
         dashboardMode: 'merged',
+        fixedCosts: {
+          vehicleType: 'owned',
+        }
       },
       tracking: {
         isActive: false,
@@ -100,7 +103,8 @@ export const useDriverStore = create<DriverState>()(
           cycles: state.cycles.map(c => {
             if (c.id === id) {
               const updated = { ...c, ...data };
-              updated.total_amount = updated.uber_amount + updated.noventanove_amount + updated.indriver_amount + updated.extra_amount;
+              updated.total_amount = (updated.uber_amount || 0) + (updated.noventanove_amount || 0) + (updated.indriver_amount || 0) + (updated.extra_amount || 0);
+              updated.total_expenses = (updated.fuel_expense || 0) + (updated.food_expense || 0) + (updated.other_expense || 0);
               return updated;
             }
             return c;
@@ -120,6 +124,10 @@ export const useDriverStore = create<DriverState>()(
               indriver_amount: cycle.indriver_amount,
               extra_amount: cycle.extra_amount,
               total_amount: cycle.total_amount,
+              fuel_expense: cycle.fuel_expense,
+              food_expense: cycle.food_expense,
+              other_expense: cycle.other_expense,
+              total_expenses: cycle.total_expenses,
               end_time: cycle.end_time,
               status: cycle.status
             })
@@ -240,7 +248,8 @@ export const useDriverStore = create<DriverState>()(
             fuel_price: newSettings.fuelPrice,
             active_platforms: newSettings.activePlatforms,
             transport_mode: newSettings.transportMode,
-            dashboard_mode: newSettings.dashboardMode
+            dashboard_mode: newSettings.dashboardMode,
+            fixed_costs: newSettings.fixedCosts
           }).eq('id', user.id);
           if (error) console.error('[Store] Sync error (settings):', error);
           set({ syncStatus: error ? 'offline' : 'synced' });
@@ -325,6 +334,10 @@ export const useDriverStore = create<DriverState>()(
               indriver_amount: c.indriver_amount,
               extra_amount: c.extra_amount,
               total_amount: c.total_amount,
+              fuel_expense: c.fuel_expense,
+              food_expense: c.food_expense,
+              other_expense: c.other_expense,
+              total_expenses: c.total_expenses,
               status: c.status
             })));
           }
@@ -338,7 +351,8 @@ export const useDriverStore = create<DriverState>()(
             fuel_price: settings.fuelPrice,
             active_platforms: settings.activePlatforms,
             transport_mode: settings.transportMode,
-            dashboard_mode: settings.dashboardMode
+            dashboard_mode: settings.dashboardMode,
+            fixed_costs: settings.fixedCosts
           });
 
           // 2. Fetch latest data
@@ -367,7 +381,8 @@ export const useDriverStore = create<DriverState>()(
               fuelPrice: profile.fuel_price,
               activePlatforms: profile.active_platforms || ['uber_car'],
               transportMode: profile.transport_mode || 'car',
-              dashboardMode: profile.dashboard_mode || 'merged'
+              dashboardMode: profile.dashboard_mode || 'merged',
+              fixedCosts: profile.fixed_costs
             };
           }
 
@@ -413,6 +428,10 @@ export const useDriverStore = create<DriverState>()(
               indriver_amount: Number(c.indriver_amount),
               extra_amount: Number(c.extra_amount),
               total_amount: Number(c.total_amount),
+              fuel_expense: Number(c.fuel_expense || 0),
+              food_expense: Number(c.food_expense || 0),
+              other_expense: Number(c.other_expense || 0),
+              total_expenses: Number(c.total_expenses || 0),
               status: c.status
             }));
           }
