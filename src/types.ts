@@ -49,6 +49,13 @@ export interface Cycle {
   total_expenses?: number;
   status: 'open' | 'closed';
   created_at?: string;
+  // Distance tracking fields
+  total_km?: number;
+  ride_km?: number;
+  displacement_km?: number;
+  uber_km?: number;
+  noventanove_km?: number;
+  indriver_km?: number;
 }
 
 export interface WorkLog {

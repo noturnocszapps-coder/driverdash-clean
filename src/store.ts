@@ -56,6 +56,12 @@ export const useDriverStore = create<DriverState>()(
           indriver_amount: 0,
           extra_amount: 0,
           total_amount: 0,
+          total_km: 0,
+          ride_km: 0,
+          displacement_km: 0,
+          uber_km: 0,
+          noventanove_km: 0,
+          indriver_km: 0,
           status: 'open' as const,
         };
 
@@ -107,6 +113,12 @@ export const useDriverStore = create<DriverState>()(
               const updated = { ...c, ...data };
               updated.total_amount = (updated.uber_amount || 0) + (updated.noventanove_amount || 0) + (updated.indriver_amount || 0) + (updated.extra_amount || 0);
               updated.total_expenses = (updated.fuel_expense || 0) + (updated.food_expense || 0) + (updated.other_expense || 0);
+              
+              // Calculate displacement KM
+              if (updated.total_km !== undefined && updated.ride_km !== undefined) {
+                updated.displacement_km = Math.max(0, updated.total_km - updated.ride_km);
+              }
+              
               return updated;
             }
             return c;
@@ -130,6 +142,12 @@ export const useDriverStore = create<DriverState>()(
               food_expense: cycle.food_expense,
               other_expense: cycle.other_expense,
               total_expenses: cycle.total_expenses,
+              total_km: cycle.total_km,
+              ride_km: cycle.ride_km,
+              displacement_km: cycle.displacement_km,
+              uber_km: cycle.uber_km,
+              noventanove_km: cycle.noventanove_km,
+              indriver_km: cycle.indriver_km,
               end_time: cycle.end_time,
               status: cycle.status
             })
@@ -342,6 +360,12 @@ export const useDriverStore = create<DriverState>()(
               food_expense: c.food_expense,
               other_expense: c.other_expense,
               total_expenses: c.total_expenses,
+              total_km: c.total_km,
+              ride_km: c.ride_km,
+              displacement_km: c.displacement_km,
+              uber_km: c.uber_km,
+              noventanove_km: c.noventanove_km,
+              indriver_km: c.indriver_km,
               status: c.status
             })));
           }
@@ -440,6 +464,12 @@ export const useDriverStore = create<DriverState>()(
               food_expense: Number(c.food_expense || 0),
               other_expense: Number(c.other_expense || 0),
               total_expenses: Number(c.total_expenses || 0),
+              total_km: Number(c.total_km || 0),
+              ride_km: Number(c.ride_km || 0),
+              displacement_km: Number(c.displacement_km || 0),
+              uber_km: Number(c.uber_km || 0),
+              noventanove_km: Number(c.noventanove_km || 0),
+              indriver_km: Number(c.indriver_km || 0),
               status: c.status
             }));
           }
