@@ -1,11 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useDriverStore } from '../store';
 import { Card, CardContent, Button, Input, Select } from '../components/UI';
 import { 
   User, Car, Target, Trash2, LogOut, Download, Database, 
   Upload, RefreshCw, AlertCircle, 
   Zap, ChevronRight, Shield, History, Smartphone, Layout, Globe, ChevronDown,
-  DollarSign
+  DollarSign, Plus, CheckCircle2
 } from 'lucide-react';
 import { downloadFile, formatCurrency, calculateDailyFixedCost, calculateMonthlyFixedCost } from '../utils';
 import { supabase } from '../lib/supabase';
@@ -13,6 +13,7 @@ import { useNavigate } from 'react-router-dom';
 import { cn } from '../utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { SyncIndicator } from '../components/SyncIndicator';
+import { VehicleProfile } from '../types';
 
 export const Settings = () => {
   const navigate = useNavigate();
@@ -24,11 +25,71 @@ export const Settings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isAddingVehicle, setIsAddingVehicle] = useState(false);
+
+  // Migration: Create default profile if none exists
+  useEffect(() => {
+    if (!settings.vehicleProfiles || settings.vehicleProfiles.length === 0) {
+      const defaultProfile: VehicleProfile = {
+        id: crypto.randomUUID(),
+        name: settings.vehicle || 'Meu Veículo',
+        brand: '',
+        model: '',
+        year: '',
+        type: settings.fixedCosts?.vehicleType || 'owned',
+        category: settings.transportMode || 'car',
+        fixedCosts: settings.fixedCosts || { vehicleType: 'owned' },
+        createdAt: new Date().toISOString()
+      };
+      updateSettings({
+        vehicleProfiles: [defaultProfile],
+        currentVehicleProfileId: defaultProfile.id
+      });
+    }
+  }, []);
+
+  const currentVehicle = useMemo(() => {
+    return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
+  }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
     navigate('/');
+  };
+
+  const handleAddVehicle = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const newVehicle: VehicleProfile = {
+      id: crypto.randomUUID(),
+      name: formData.get('name') as string,
+      brand: formData.get('brand') as string,
+      model: formData.get('model') as string,
+      year: formData.get('year') as string,
+      plate: formData.get('plate') as string,
+      type: formData.get('type') as any,
+      category: formData.get('category') as any,
+      fixedCosts: {
+        vehicleType: formData.get('type') as any,
+        rentalPeriod: 'weekly',
+      },
+      createdAt: new Date().toISOString()
+    };
+
+    updateSettings({
+      vehicleProfiles: [...(settings.vehicleProfiles || []), newVehicle],
+      currentVehicleProfileId: newVehicle.id
+    });
+    setIsAddingVehicle(false);
+  };
+
+  const updateCurrentVehicleCosts = (newFixedCosts: any) => {
+    if (!settings.currentVehicleProfileId) return;
+    const updatedProfiles = settings.vehicleProfiles?.map(v => 
+      v.id === settings.currentVehicleProfileId ? { ...v, fixedCosts: { ...v.fixedCosts, ...newFixedCosts } } : v
+    );
+    updateSettings({ vehicleProfiles: updatedProfiles });
   };
 
   const handleClearData = async () => {
@@ -174,106 +235,147 @@ export const Settings = () => {
         </Card>
       </section>
 
-      {/* Vehicle Costs Section */}
+      {/* Vehicle Profile Section */}
       <section className="space-y-4">
-        <SectionHeader icon={Car} title="Custos do Veículo" />
-        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+        <div className="flex items-center justify-between px-1">
+          <SectionHeader icon={Car} title="Perfil do Veículo" />
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setIsAddingVehicle(true)}
+            className="h-8 px-3 text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:bg-emerald-500/10 rounded-xl"
+          >
+            <Plus size={14} className="mr-1" /> Novo Carro
+          </Button>
+        </div>
+        
+        <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
           <CardContent className="p-6 space-y-6">
+            {/* Vehicle Selector */}
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Veículo</label>
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Veículo Ativo</label>
               <Select
-                value={settings.fixedCosts?.vehicleType || 'owned'}
-                onChange={e => updateSettings({ 
-                  fixedCosts: { 
-                    ...(settings.fixedCosts || { vehicleType: 'owned' }), 
-                    vehicleType: e.target.value as any 
-                  } 
-                })}
+                value={settings.currentVehicleProfileId || ''}
+                onChange={e => updateSettings({ currentVehicleProfileId: e.target.value })}
                 className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
               >
-                <option value="owned">Veículo Próprio</option>
-                <option value="rented">Veículo Alugado</option>
+                {settings.vehicleProfiles?.map(v => (
+                  <option key={v.id} value={v.id}>{v.name} ({v.model || v.brand || 'Sem modelo'})</option>
+                ))}
               </Select>
             </div>
 
-            {settings.fixedCosts?.vehicleType === 'owned' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <CostInput 
-                  label="Seguro" 
-                  value={settings.fixedCosts?.insurance} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, insurance: val } })} 
-                />
-                <CostInput 
-                  label="IPVA" 
-                  value={settings.fixedCosts?.ipva} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, ipva: val } })} 
-                />
-                <CostInput 
-                  label="Troca de Óleo" 
-                  value={settings.fixedCosts?.oilChange} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, oilChange: val } })} 
-                />
-                <CostInput 
-                  label="Pneus" 
-                  value={settings.fixedCosts?.tires} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, tires: val } })} 
-                />
-                <CostInput 
-                  label="Manutenção" 
-                  value={settings.fixedCosts?.maintenance} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, maintenance: val } })} 
-                />
-                <CostInput 
-                  label="Parcela" 
-                  value={settings.fixedCosts?.financing} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, financing: val } })} 
-                />
-              </div>
-            ) : (
-              <div className="space-y-4">
+            {currentVehicle && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Nome do Carro</label>
+                    <Input 
+                      value={currentVehicle.name}
+                      onChange={e => {
+                        const updated = settings.vehicleProfiles?.map(v => v.id === currentVehicle.id ? { ...v, name: e.target.value } : v);
+                        updateSettings({ vehicleProfiles: updated });
+                      }}
+                      className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Ano</label>
+                    <Input 
+                      value={currentVehicle.year}
+                      onChange={e => {
+                        const updated = settings.vehicleProfiles?.map(v => v.id === currentVehicle.id ? { ...v, year: e.target.value } : v);
+                        updateSettings({ vehicleProfiles: updated });
+                      }}
+                      className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Aluguel</label>
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Veículo</label>
                   <Select
-                    value={settings.fixedCosts?.rentalPeriod || 'weekly'}
-                    onChange={e => updateSettings({ 
-                      fixedCosts: { 
-                        ...(settings.fixedCosts || { vehicleType: 'rented' }), 
-                        rentalPeriod: e.target.value as any 
-                      } 
-                    })}
+                    value={currentVehicle.type}
+                    onChange={e => {
+                      const updated = settings.vehicleProfiles?.map(v => v.id === currentVehicle.id ? { ...v, type: e.target.value as any, fixedCosts: { ...v.fixedCosts, vehicleType: e.target.value as any } } : v);
+                      updateSettings({ vehicleProfiles: updated });
+                    }}
                     className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
                   >
-                    <option value="weekly">Semanal</option>
-                    <option value="monthly">Mensal</option>
+                    <option value="owned">Veículo Próprio</option>
+                    <option value="rented">Veículo Alugado</option>
                   </Select>
                 </div>
-                <CostInput 
-                  label="Valor do Aluguel" 
-                  value={settings.fixedCosts?.rentalValue} 
-                  onChange={val => updateSettings({ fixedCosts: { ...settings.fixedCosts!, rentalValue: val } })} 
-                />
-              </div>
-            )}
 
-            <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
-              <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Custo Fixo Diário</p>
-                <p className="text-xl font-black text-emerald-500">
-                  {formatCurrency(calculateDailyFixedCost(settings.fixedCosts))}
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Mensal</p>
-                <p className="text-sm font-bold text-zinc-400">
-                  {formatCurrency(calculateMonthlyFixedCost(settings.fixedCosts))}
-                </p>
-              </div>
-            </div>
+                {currentVehicle.type === 'owned' ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <CostInput 
+                      label="Seguro" 
+                      value={currentVehicle.fixedCosts.insurance} 
+                      onChange={val => updateCurrentVehicleCosts({ insurance: val })} 
+                    />
+                    <CostInput 
+                      label="IPVA" 
+                      value={currentVehicle.fixedCosts.ipva} 
+                      onChange={val => updateCurrentVehicleCosts({ ipva: val })} 
+                    />
+                    <CostInput 
+                      label="Troca de Óleo" 
+                      value={currentVehicle.fixedCosts.oilChange} 
+                      onChange={val => updateCurrentVehicleCosts({ oilChange: val })} 
+                    />
+                    <CostInput 
+                      label="Pneus" 
+                      value={currentVehicle.fixedCosts.tires} 
+                      onChange={val => updateCurrentVehicleCosts({ tires: val })} 
+                    />
+                    <CostInput 
+                      label="Manutenção" 
+                      value={currentVehicle.fixedCosts.maintenance} 
+                      onChange={val => updateCurrentVehicleCosts({ maintenance: val })} 
+                    />
+                    <CostInput 
+                      label="Parcela" 
+                      value={currentVehicle.fixedCosts.financing} 
+                      onChange={val => updateCurrentVehicleCosts({ financing: val })} 
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo de Aluguel</label>
+                      <Select
+                        value={currentVehicle.fixedCosts.rentalPeriod || 'weekly'}
+                        onChange={e => updateCurrentVehicleCosts({ rentalPeriod: e.target.value as any })}
+                        className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+                      >
+                        <option value="weekly">Semanal</option>
+                        <option value="monthly">Mensal</option>
+                      </Select>
+                    </div>
+                    <CostInput 
+                      label="Valor do Aluguel" 
+                      value={currentVehicle.fixedCosts.rentalValue} 
+                      onChange={val => updateCurrentVehicleCosts({ rentalValue: val })} 
+                    />
+                  </div>
+                )}
 
-            {settings.fixedCosts?.vehicleType === 'rented' && settings.fixedCosts?.rentalPeriod === 'weekly' && (
-              <p className="text-[9px] text-zinc-500 font-medium px-1 italic">
-                * Aluguel semanal convertido para mensal usando multiplicador de 4.33 (padrão contábil).
-              </p>
+                <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+                  <div>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Custo Fixo Diário</p>
+                    <p className="text-xl font-black text-emerald-500">
+                      {formatCurrency(calculateDailyFixedCost(currentVehicle.fixedCosts))}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">Total Mensal</p>
+                    <p className="text-sm font-bold text-zinc-400">
+                      {formatCurrency(calculateMonthlyFixedCost(currentVehicle.fixedCosts))}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -367,11 +469,81 @@ export const Settings = () => {
         </Card>
       </section>
 
-      <div className="text-center py-8 space-y-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-300 dark:text-zinc-800">DriverDash Beta</p>
-        <p className="text-[10px] text-zinc-400 font-bold">v2.1.0 • Build 20260316</p>
-        <p className="text-[10px] text-zinc-500 font-medium mt-2">Versão Beta — o aplicativo está em fase de testes. Atualmente é gratuito enquanto coletamos feedback e corrigimos possíveis bugs.</p>
-      </div>
+      {/* Add Vehicle Modal */}
+      <AnimatePresence>
+        {isAddingVehicle && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddingVehicle(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="fixed inset-x-4 bottom-10 md:inset-0 m-auto w-full max-w-md h-fit z-[110] p-6"
+            >
+              <Card className="border-none bg-white dark:bg-zinc-900 shadow-2xl rounded-[2.5rem] overflow-hidden">
+                <CardContent className="p-8 space-y-6">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-2xl font-black tracking-tighter">Novo Veículo</h3>
+                    <Button variant="ghost" size="sm" onClick={() => setIsAddingVehicle(false)}>Fechar</Button>
+                  </div>
+                  
+                  <form onSubmit={handleAddVehicle} className="space-y-4">
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Nome (Ex: HB20S)</label>
+                      <Input name="name" required className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Marca</label>
+                        <Input name="brand" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Modelo</label>
+                        <Input name="model" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Ano</label>
+                        <Input name="year" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Placa (Opcional)</label>
+                        <Input name="plate" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold" />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Tipo</label>
+                        <Select name="type" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold">
+                          <option value="owned">Próprio</option>
+                          <option value="rented">Alugado</option>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Categoria</label>
+                        <Select name="category" className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold">
+                          <option value="car">Carro</option>
+                          <option value="motorcycle">Moto</option>
+                        </Select>
+                      </div>
+                    </div>
+                    <Button type="submit" className="w-full h-16 bg-emerald-500 text-zinc-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-500/20 mt-4">
+                      Salvar Veículo
+                    </Button>
+                  </form>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Delete Confirmation Modal */}
       <AnimatePresence>

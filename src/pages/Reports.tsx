@@ -11,10 +11,19 @@ import {
 import { ptBR } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { motion } from 'motion/react';
+import { SyncIndicator } from '../components/SyncIndicator';
 
 export const Reports = () => {
   const { cycles, settings } = useDriverStore();
-  const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
+  
+  const currentVehicle = useMemo(() => {
+    return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
+  }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
+
+  const dailyFixed = useMemo(() => {
+    const fixedCosts = currentVehicle?.fixedCosts || settings.fixedCosts;
+    return calculateDailyFixedCost(fixedCosts);
+  }, [currentVehicle, settings.fixedCosts]);
   
   const today = startOfDay(new Date());
   
@@ -91,13 +100,16 @@ export const Reports = () => {
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">Relatórios</p>
           <h1 className="text-3xl font-black tracking-tighter">Análise Semanal</h1>
         </div>
-        <div className="flex gap-2">
-          <button className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
-            <Filter size={18} />
-          </button>
-          <button className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-zinc-950">
-            <Download size={18} />
-          </button>
+        <div className="flex items-center gap-4">
+          <SyncIndicator />
+          <div className="flex gap-2">
+            <button className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-500">
+              <Filter size={18} />
+            </button>
+            <button className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-zinc-950">
+              <Download size={18} />
+            </button>
+          </div>
         </div>
       </header>
 

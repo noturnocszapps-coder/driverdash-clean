@@ -1,17 +1,26 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
 import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
 import { Card, CardContent, Button } from '../components/UI';
 import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone, Fuel, Utensils, MoreHorizontal, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import { SyncIndicator } from '../components/SyncIndicator';
 
 export const Faturamento = () => {
   const { cycles, updateCycle, startCycle, settings } = useDriverStore();
   const navigate = useNavigate();
   
   const openCycle = cycles.find(c => c.status === 'open');
-  const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
+  
+  const currentVehicle = useMemo(() => {
+    return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
+  }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
+
+  const dailyFixed = useMemo(() => {
+    const fixedCosts = currentVehicle?.fixedCosts || settings.fixedCosts;
+    return calculateDailyFixedCost(fixedCosts);
+  }, [currentVehicle, settings.fixedCosts]);
   
   const [amounts, setAmounts] = useState({
     uber: 0,
@@ -76,17 +85,20 @@ export const Faturamento = () => {
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6 pb-24 md:pb-8"
     >
-      <header className="flex items-center gap-4 px-1">
-        <button 
-          onClick={() => navigate(-1)}
-          className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm active:scale-90 transition-all"
-        >
-          <ChevronLeft size={24} />
-        </button>
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">Lançamento</p>
-          <h1 className="text-2xl font-black tracking-tighter">Fechamento do Ciclo</h1>
+      <header className="flex items-center justify-between px-1">
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => navigate(-1)}
+            className="w-12 h-12 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 flex items-center justify-center text-zinc-500 shadow-sm active:scale-90 transition-all"
+          >
+            <ChevronLeft size={24} />
+          </button>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">Lançamento</p>
+            <h1 className="text-2xl font-black tracking-tighter">Fechamento do Ciclo</h1>
+          </div>
         </div>
+        <SyncIndicator />
       </header>
 
       {!openCycle && (

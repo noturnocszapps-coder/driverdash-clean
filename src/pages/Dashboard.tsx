@@ -29,14 +29,19 @@ export const Dashboard = () => {
 
   const openCycle = useMemo(() => cycles.find(c => c.status === 'open'), [cycles]);
   
+  const currentVehicle = useMemo(() => {
+    return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
+  }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
+
   const profitStats = useMemo(() => {
     if (!openCycle) return null;
     const earnings = openCycle.total_amount || 0;
     const expenses = (openCycle.fuel_expense || 0) + (openCycle.food_expense || 0) + (openCycle.other_expense || 0);
-    const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
+    const fixedCosts = currentVehicle?.fixedCosts || settings.fixedCosts;
+    const dailyFixed = calculateDailyFixedCost(fixedCosts);
     const profit = earnings - expenses - dailyFixed;
     return { earnings, expenses, dailyFixed, profit };
-  }, [openCycle, settings.fixedCosts]);
+  }, [openCycle, settings.fixedCosts, currentVehicle]);
 
   const cycleProgress = useMemo(() => {
     if (!openCycle) return null;
