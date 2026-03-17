@@ -721,9 +721,21 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, color, loading 
 );
 
 const PatchNotes = () => {
-  const [expanded, setExpanded] = useState<string | null>('2.1.0');
+  const [expanded, setExpanded] = useState<string | null>('2.2.0');
 
   const versions = [
+    {
+      id: '2.2.0',
+      date: '18 Mar, 2026',
+      notes: [
+        'Novo sistema de análise de quilômetros por ciclo.',
+        'Cálculo automático de KM de deslocamento.',
+        'Métrica de custo operacional por KM.',
+        'Dashboard com eficiência por KM.',
+        'Lucro líquido por KM.',
+        'Preparação para rastreamento por plataforma (Uber, 99 e inDrive).'
+      ]
+    },
     {
       id: '2.1.1',
       date: '17 Mar, 2026',

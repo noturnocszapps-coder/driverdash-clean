@@ -1,9 +1,9 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
-import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
+import { formatCurrency, cn, calculateDailyFixedCost, calculateEfficiencyMetrics, formatKm } from '../utils';
 import { Card, CardContent, Button } from '../components/UI';
-import { TrendingUp, Clock, Target, Zap, LayoutGrid, Plus, ChevronRight, Navigation, Calendar, AlertCircle } from 'lucide-react';
+import { TrendingUp, Clock, Target, Zap, LayoutGrid, Plus, ChevronRight, Navigation, Calendar, AlertCircle, Gauge } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { startOfDay, isSameDay, parseISO, subDays, format, differenceInMinutes, addHours } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -42,6 +42,11 @@ export const Dashboard = () => {
     const profit = earnings - expenses - dailyFixed;
     return { earnings, expenses, dailyFixed, profit };
   }, [openCycle, settings.fixedCosts, currentVehicle]);
+
+  const efficiencyStats = useMemo(() => {
+    if (!openCycle) return null;
+    return calculateEfficiencyMetrics(openCycle, settings);
+  }, [openCycle, settings]);
 
   const cycleProgress = useMemo(() => {
     if (!openCycle) return null;
@@ -253,6 +258,64 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Distance & Efficiency Stats */}
+      {openCycle && (
+        <div className="grid grid-cols-1 gap-4">
+          <Card className="border-none shadow-sm bg-white dark:bg-zinc-900 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="p-5 border-b border-zinc-50 dark:border-zinc-800/50 flex justify-between items-center">
+                <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+                  <Gauge size={16} className="text-emerald-500" />
+                  Análise de Eficiência
+                </h3>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-zinc-400 uppercase">Total:</span>
+                  <span className="text-xs font-black">{formatKm(openCycle.total_km || 0)}</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-3 divide-x divide-zinc-50 dark:divide-zinc-800/50">
+                <div className="p-4 space-y-1">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Em Corrida</p>
+                  <p className="text-sm font-black tracking-tight">{formatKm(openCycle.ride_km || 0)}</p>
+                </div>
+                <div className="p-4 space-y-1">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Deslocamento</p>
+                  <p className="text-sm font-black tracking-tight text-zinc-500">{formatKm(openCycle.displacement_km || 0)}</p>
+                </div>
+                <div className="p-4 space-y-1">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">R$/km Bruto</p>
+                  <p className="text-sm font-black tracking-tight text-emerald-500">
+                    {formatCurrency(efficiencyStats?.grossPerKm || 0).replace('R$', '')}/km
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-zinc-50/50 dark:bg-zinc-800/20 p-4 grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-white dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shadow-sm">
+                    <TrendingUp size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">R$/km Líquido</p>
+                    <p className="text-xs font-black">{formatCurrency(efficiencyStats?.netPerKm || 0)}/km</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-sm">
+                    <Zap size={14} />
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Lucro/km Real</p>
+                    <p className="text-xs font-black text-emerald-500">{formatCurrency(efficiencyStats?.profitPerKm || 0)}/km</p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Chart Preview */}
       <Card className="border-none shadow-sm bg-white dark:bg-zinc-900 overflow-visible">

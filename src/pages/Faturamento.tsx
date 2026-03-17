@@ -35,6 +35,15 @@ export const Faturamento = () => {
     other: 0
   });
 
+  const [kms, setKms] = useState({
+    total: 0,
+    ride: 0,
+    uber: 0,
+    noventanove: 0,
+    indriver: 0
+  });
+  const [showAdvancedKm, setShowAdvancedKm] = useState(false);
+
   useEffect(() => {
     if (openCycle) {
       setAmounts({
@@ -48,6 +57,13 @@ export const Faturamento = () => {
         food: openCycle.food_expense || 0,
         other: openCycle.other_expense || 0
       });
+      setKms({
+        total: openCycle.total_km || 0,
+        ride: openCycle.ride_km || 0,
+        uber: openCycle.uber_km || 0,
+        noventanove: openCycle.noventanove_km || 0,
+        indriver: openCycle.indriver_km || 0
+      });
     }
   }, [openCycle]);
 
@@ -59,7 +75,12 @@ export const Faturamento = () => {
       extra_amount: amounts.extra,
       fuel_expense: expenses.fuel,
       food_expense: expenses.food,
-      other_expense: expenses.other
+      other_expense: expenses.other,
+      total_km: kms.total,
+      ride_km: kms.ride,
+      uber_km: kms.uber,
+      noventanove_km: kms.noventanove,
+      indriver_km: kms.indriver
     };
 
     if (!openCycle) {
@@ -168,6 +189,61 @@ export const Faturamento = () => {
         </div>
       </div>
 
+      <div className="space-y-4">
+        <div className="flex justify-between items-center px-1">
+          <h3 className="font-black text-sm uppercase tracking-widest flex items-center gap-2">
+            <TrendingUp size={16} className="text-emerald-500" />
+            Distância Percorrida
+          </h3>
+          <button 
+            onClick={() => setShowAdvancedKm(!showAdvancedKm)}
+            className="text-[10px] font-black text-emerald-500 uppercase tracking-widest"
+          >
+            {showAdvancedKm ? 'Modo Simples' : 'Modo Avançado'}
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
+          <KmInput 
+            label="KM Total" 
+            value={kms.total} 
+            onChange={(val) => setKms(prev => ({ ...prev, total: val }))} 
+          />
+          <KmInput 
+            label="KM em Corrida" 
+            value={kms.ride} 
+            onChange={(val) => setKms(prev => ({ ...prev, ride: val }))} 
+          />
+        </div>
+
+        {showAdvancedKm && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="space-y-3 pt-2 border-t border-zinc-100 dark:border-zinc-800"
+          >
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest px-1">KM por Plataforma</p>
+            <div className="grid grid-cols-3 gap-3">
+              <KmInput 
+                label="Uber" 
+                value={kms.uber} 
+                onChange={(val) => setKms(prev => ({ ...prev, uber: val }))} 
+              />
+              <KmInput 
+                label="99" 
+                value={kms.noventanove} 
+                onChange={(val) => setKms(prev => ({ ...prev, noventanove: val }))} 
+              />
+              <KmInput 
+                label="inDrive" 
+                value={kms.indriver} 
+                onChange={(val) => setKms(prev => ({ ...prev, indriver: val }))} 
+              />
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       <Card className="bg-zinc-900 text-white border-none shadow-2xl shadow-zinc-900/20 rounded-[2.5rem] overflow-hidden">
         <CardContent className="p-8 flex flex-col gap-6">
           <div className="grid grid-cols-2 gap-6">
@@ -229,6 +305,27 @@ const ExpenseInput = ({ icon: Icon, label, value, onChange }: any) => (
           placeholder="0,00"
           className="w-full bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl py-2.5 pl-8 pr-3 text-right font-black text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
         />
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const KmInput = ({ label, value, onChange }: any) => (
+  <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm">
+    <CardContent className="p-4 flex flex-col gap-2">
+      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</span>
+      <div className="relative">
+        <input 
+          type="number"
+          value={value === 0 ? '' : value}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange(val === '' ? 0 : Number(val));
+          }}
+          placeholder="0"
+          className="w-full bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl py-2.5 px-3 text-right font-black text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
+        />
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">KM</span>
       </div>
     </CardContent>
   </Card>

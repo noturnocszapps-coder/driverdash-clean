@@ -1,9 +1,9 @@
 import React, { useMemo } from 'react';
 import { useDriverStore } from '../store';
-import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
+import { formatCurrency, cn, calculateDailyFixedCost, formatKm } from '../utils';
 import { Card, CardContent } from '../components/UI';
 import { 
-  TrendingUp, Calendar, ChevronRight, BarChart3, Award, Zap, Download, Filter
+  TrendingUp, Calendar, ChevronRight, BarChart3, Award, Zap, Download, Filter, Gauge
 } from 'lucide-react';
 import { 
   startOfDay, isSameDay, parseISO, format, subDays, startOfWeek, addDays
@@ -39,6 +39,9 @@ export const Reports = () => {
       const noventanove = dayCycles.reduce((acc, c) => acc + c.noventanove_amount, 0);
       const indriver = dayCycles.reduce((acc, c) => acc + c.indriver_amount, 0);
       const extra = dayCycles.reduce((acc, c) => acc + c.extra_amount, 0);
+      
+      const totalKm = dayCycles.reduce((acc, c) => acc + (c.total_km || 0), 0);
+      const rideKm = dayCycles.reduce((acc, c) => acc + (c.ride_km || 0), 0);
 
       // Only apply fixed cost if there was activity
       const fixedCost = dayRevenue > 0 ? dailyFixed : 0;
@@ -50,6 +53,8 @@ export const Reports = () => {
         value: dayRevenue,
         expenses: totalDayExpenses,
         profit: dayRevenue - totalDayExpenses,
+        totalKm,
+        rideKm,
         uber,
         noventanove,
         indriver,
@@ -63,6 +68,7 @@ export const Reports = () => {
     const total = currentWeek.reduce((acc, d) => acc + d.value, 0);
     const totalExpenses = currentWeek.reduce((acc, d) => acc + d.expenses, 0);
     const totalProfit = total - totalExpenses;
+    const totalKm = currentWeek.reduce((acc, d) => acc + d.totalKm, 0);
     const avg = total / 7;
     const sorted = [...currentWeek].sort((a, b) => b.value - a.value);
     
@@ -77,6 +83,7 @@ export const Reports = () => {
       total,
       totalExpenses,
       totalProfit,
+      totalKm,
       avg,
       best: sorted[0],
       platformTotals
@@ -116,8 +123,8 @@ export const Reports = () => {
       {/* Weekly Summary Cards */}
       <div className="grid grid-cols-3 gap-3">
         <SummaryCard label="Faturado" value={formatCurrency(stats.total)} color="text-zinc-900 dark:text-white" />
-        <SummaryCard label="Despesas" value={formatCurrency(stats.totalExpenses)} color="text-red-500" />
         <SummaryCard label="Lucro Total" value={formatCurrency(stats.totalProfit)} color="text-emerald-500" />
+        <SummaryCard label="KM Total" value={formatKm(stats.totalKm)} color="text-blue-500" />
       </div>
 
       {/* Main Chart Card */}
@@ -160,6 +167,10 @@ export const Reports = () => {
                             <div className="flex justify-between items-center text-[9px] font-bold">
                               <span className="text-zinc-500 uppercase">Despesas</span>
                               <span className="text-red-400">{formatCurrency(data.expenses)}</span>
+                            </div>
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                              <span className="text-zinc-500 uppercase">KM Total</span>
+                              <span className="text-blue-400">{formatKm(data.totalKm)}</span>
                             </div>
                             <div className="pt-1" />
                             <TooltipItem label="Uber" value={data.uber} color="bg-white" />
@@ -234,7 +245,7 @@ export const Reports = () => {
                   <div>
                     <p className="text-sm font-black tracking-tight">{formatCurrency(cycle.total_amount)}</p>
                     <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-                      {format(new Date(cycle.start_time), 'HH:mm')} 
+                      {formatKm(cycle.total_km || 0)} • {format(new Date(cycle.start_time), 'HH:mm')} 
                       {cycle.end_time && ` • ${format(new Date(cycle.end_time), 'HH:mm')}`}
                     </p>
                   </div>
