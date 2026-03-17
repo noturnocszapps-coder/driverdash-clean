@@ -24,7 +24,7 @@ export const QuickEntryModal = ({ isOpen, onClose }: QuickEntryModalProps) => {
     }
   }, [isOpen]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const value = parseFloat(amount.replace(',', '.'));
     if (isNaN(value) || value <= 0) return;
 
@@ -32,7 +32,7 @@ export const QuickEntryModal = ({ isOpen, onClose }: QuickEntryModalProps) => {
     let cycleId = openCycle?.id;
 
     if (!cycleId) {
-      cycleId = startCycle();
+      cycleId = await startCycle();
     }
 
     addCycleAmount(cycleId, platform, value);
