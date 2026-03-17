@@ -269,6 +269,12 @@ export const Settings = () => {
                 </p>
               </div>
             </div>
+
+            {settings.fixedCosts?.vehicleType === 'rented' && settings.fixedCosts?.rentalPeriod === 'weekly' && (
+              <p className="text-[9px] text-zinc-500 font-medium px-1 italic">
+                * Aluguel semanal convertido para mensal usando multiplicador de 4.33 (padrão contábil).
+              </p>
+            )}
           </CardContent>
         </Card>
       </section>

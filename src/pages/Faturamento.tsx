@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDriverStore } from '../store';
-import { formatCurrency, cn } from '../utils';
+import { formatCurrency, cn, calculateDailyFixedCost } from '../utils';
 import { Card, CardContent, Button } from '../components/UI';
-import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone, Fuel, Utensils, MoreHorizontal } from 'lucide-react';
+import { ChevronLeft, Save, Plus, Minus, Info, AlertCircle, Smartphone, Fuel, Utensils, MoreHorizontal, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
 
 export const Faturamento = () => {
-  const { cycles, updateCycle, startCycle } = useDriverStore();
+  const { cycles, updateCycle, startCycle, settings } = useDriverStore();
   const navigate = useNavigate();
   
   const openCycle = cycles.find(c => c.status === 'open');
+  const dailyFixed = calculateDailyFixedCost(settings.fixedCosts);
   
   const [amounts, setAmounts] = useState({
     uber: 0,
@@ -62,6 +63,8 @@ export const Faturamento = () => {
   };
 
   const total = amounts.uber + amounts.noventanove + amounts.indriver + amounts.extra;
+  const totalExpenses = expenses.fuel + expenses.food + expenses.other + dailyFixed;
+  const estimatedProfit = total - totalExpenses;
 
   const updateAmount = (key: keyof typeof amounts, value: number) => {
     setAmounts(prev => ({ ...prev, [key]: Math.max(0, value) }));
@@ -155,13 +158,14 @@ export const Faturamento = () => {
 
       <Card className="bg-zinc-900 text-white border-none shadow-2xl shadow-zinc-900/20 rounded-[2.5rem] overflow-hidden">
         <CardContent className="p-8 flex flex-col gap-6">
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-1">Total Geral</p>
-              <p className="text-4xl font-black tracking-tighter">{formatCurrency(total)}</p>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Total Geral</p>
+              <p className="text-2xl font-black tracking-tighter">{formatCurrency(total)}</p>
             </div>
-            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
-              <Smartphone className="text-zinc-500" size={24} />
+            <div className="space-y-1 text-right">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">Lucro Estimado</p>
+              <p className="text-2xl font-black tracking-tighter text-emerald-400">{formatCurrency(estimatedProfit)}</p>
             </div>
           </div>
           

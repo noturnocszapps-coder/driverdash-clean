@@ -120,7 +120,7 @@ export const Dashboard = () => {
         <CardContent className="p-8 space-y-8 relative z-10">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Ganhos do Ciclo Atual</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Faturamento do Ciclo</p>
               <h2 className="text-5xl font-black tracking-tighter">
                 {formatCurrency(openCycle?.total_amount || 0)}
               </h2>
