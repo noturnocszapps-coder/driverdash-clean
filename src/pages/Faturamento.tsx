@@ -44,6 +44,9 @@ export const Faturamento = () => {
   });
   const [showAdvancedKm, setShowAdvancedKm] = useState(false);
 
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
   useEffect(() => {
     if (openCycle) {
       setAmounts({
@@ -67,29 +70,50 @@ export const Faturamento = () => {
     }
   }, [openCycle]);
 
-  const handleSave = () => {
-    const cycleData = {
-      uber_amount: amounts.uber,
-      noventanove_amount: amounts.noventanove,
-      indriver_amount: amounts.indriver,
-      extra_amount: amounts.extra,
-      fuel_expense: expenses.fuel,
-      food_expense: expenses.food,
-      other_expense: expenses.other,
-      total_km: kms.total,
-      ride_km: kms.ride,
-      uber_km: kms.uber,
-      noventanove_km: kms.noventanove,
-      indriver_km: kms.indriver
-    };
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    setSaveStatus('idle');
 
-    if (!openCycle) {
-      const newCycleId = startCycle();
-      updateCycle(newCycleId, cycleData);
-    } else {
-      updateCycle(openCycle.id, cycleData);
+    try {
+      const cycleData = {
+        uber_amount: amounts.uber,
+        noventanove_amount: amounts.noventanove,
+        indriver_amount: amounts.indriver,
+        extra_amount: amounts.extra,
+        fuel_expense: expenses.fuel,
+        food_expense: expenses.food,
+        other_expense: expenses.other,
+        total_km: kms.total,
+        ride_km: kms.ride,
+        uber_km: kms.uber,
+        noventanove_km: kms.noventanove,
+        indriver_km: kms.indriver,
+        status: 'closed' as const,
+        end_time: new Date().toISOString(),
+        vehicle_id: settings.currentVehicleProfileId,
+        vehicle_name: currentVehicle?.name || settings.vehicle
+      };
+
+      if (!openCycle) {
+        const newCycleId = await startCycle();
+        await updateCycle(newCycleId, cycleData);
+      } else {
+        await updateCycle(openCycle.id, cycleData);
+      }
+      
+      setSaveStatus('success');
+      
+      // Brief delay to show success state before redirecting
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } catch (error) {
+      console.error('[Faturamento] Error saving cycle:', error);
+      setSaveStatus('error');
+      setIsSaving(false);
     }
-    navigate('/');
   };
 
   const total = amounts.uber + amounts.noventanove + amounts.indriver + amounts.extra;
@@ -259,11 +283,37 @@ export const Faturamento = () => {
           
           <Button 
             onClick={handleSave}
-            className="w-full h-16 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-lg rounded-2xl shadow-xl shadow-emerald-500/20 gap-3"
+            disabled={isSaving}
+            className={cn(
+              "w-full h-16 font-black text-lg rounded-2xl shadow-xl gap-3 transition-all",
+              saveStatus === 'success' ? "bg-emerald-600 shadow-emerald-500/40" : "bg-emerald-500 hover:bg-emerald-400 shadow-emerald-500/20",
+              isSaving && "opacity-80"
+            )}
           >
-            <Save size={20} />
-            Confirmar Fechamento
+            {isSaving ? (
+              <>
+                <div className="w-5 h-5 border-2 border-zinc-950/20 border-t-zinc-950 rounded-full animate-spin" />
+                {saveStatus === 'success' ? 'Salvo!' : 'Salvando...'}
+              </>
+            ) : (
+              <>
+                <Save size={20} />
+                Confirmar Fechamento
+              </>
+            )}
           </Button>
+
+          {saveStatus === 'error' && (
+            <p className="text-center text-xs font-bold text-red-400 animate-pulse">
+              Não foi possível salvar o fechamento. Tente novamente.
+            </p>
+          )}
+          
+          {saveStatus === 'success' && (
+            <p className="text-center text-xs font-bold text-emerald-400">
+              Fechamento salvo com sucesso! Redirecionando...
+            </p>
+          )}
         </CardContent>
       </Card>
 

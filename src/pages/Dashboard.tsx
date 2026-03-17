@@ -83,8 +83,8 @@ export const Dashboard = () => {
     return { chartData, total7Days, avg };
   }, [cycles]);
 
-  const handleStartCycle = () => {
-    startCycle();
+  const handleStartCycle = async () => {
+    await startCycle();
   };
 
   return (
