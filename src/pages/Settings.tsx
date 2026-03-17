@@ -868,9 +868,21 @@ const SettingsItem = ({ icon: Icon, title, description, onClick, color, loading 
 );
 
 const PatchNotes = () => {
-  const [expanded, setExpanded] = useState<string | null>('2.2.0');
+  const [expanded, setExpanded] = useState<string | null>('2.1.2');
 
   const versions = [
+    {
+      id: '2.1.2',
+      date: '17 Mar, 2026',
+      notes: [
+        'Corrigido o seletor de "Veículo Ativo", agora totalmente funcional.',
+        'Agora é possível alternar entre veículos de forma rápida com um seletor interativo.',
+        'Adicionado seletor moderno em formato bottom sheet para escolha de veículos.',
+        'Implementada sincronização automática dos dados do veículo ativo com custos e métricas do app.',
+        'Melhorado o comportamento ao excluir veículos, com troca automática do veículo ativo quando necessário.',
+        'Garantida a integridade dos dados com criação automática de veículo padrão quando necessário.'
+      ]
+    },
     {
       id: '2.2.0',
       date: '18 Mar, 2026',
