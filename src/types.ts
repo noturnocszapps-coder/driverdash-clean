@@ -130,6 +130,19 @@ export interface FixedCosts {
   rentalValue?: number;
 }
 
+export interface VehicleProfile {
+  id: string;
+  name: string;
+  brand: string;
+  model: string;
+  year: string;
+  plate?: string;
+  type: 'owned' | 'rented';
+  category: 'car' | 'motorcycle';
+  fixedCosts: FixedCosts;
+  createdAt: string;
+}
+
 export interface UserSettings {
   dailyGoal: number;
   name: string;
@@ -143,6 +156,8 @@ export interface UserSettings {
   activePlatforms: PlatformType[];
   transportMode: TransportMode;
   dashboardMode: 'merged' | 'segmented';
+  currentVehicleProfileId?: string;
+  vehicleProfiles?: VehicleProfile[];
 }
 
 export interface TrackingSession {

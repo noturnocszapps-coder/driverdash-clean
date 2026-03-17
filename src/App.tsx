@@ -33,14 +33,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <div className="flex flex-1">
         <Sidebar />
         <main className="flex-1 px-4 py-6 md:px-8 max-w-5xl mx-auto w-full">
-          <div className="flex justify-end mb-4 md:hidden">
-            <SyncIndicator />
-          </div>
           {children}
         </main>
       </div>
       <BottomNav />
-      <Footer />
     </div>
   );
 };

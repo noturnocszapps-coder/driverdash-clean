@@ -28,7 +28,9 @@ export const useDriverStore = create<DriverState>()(
         dashboardMode: 'merged',
         fixedCosts: {
           vehicleType: 'owned',
-        }
+        },
+        vehicleProfiles: [],
+        currentVehicleProfileId: undefined,
       },
       tracking: {
         isActive: false,
@@ -237,19 +239,21 @@ export const useDriverStore = create<DriverState>()(
 
       updateSettings: async (newSettings) => {
         set((state) => ({ settings: { ...state.settings, ...newSettings } }));
-        const { user } = get();
+        const { user, settings } = get();
         if (user && isSupabaseConfigured) {
           set({ syncStatus: 'syncing' });
           const { error } = await supabase.from('profiles').update({
-            name: newSettings.name,
-            daily_goal: newSettings.dailyGoal,
-            vehicle: newSettings.vehicle,
-            km_per_liter: newSettings.kmPerLiter,
-            fuel_price: newSettings.fuelPrice,
-            active_platforms: newSettings.activePlatforms,
-            transport_mode: newSettings.transportMode,
-            dashboard_mode: newSettings.dashboardMode,
-            fixed_costs: newSettings.fixedCosts
+            name: settings.name,
+            daily_goal: settings.dailyGoal,
+            vehicle: settings.vehicle,
+            km_per_liter: settings.kmPerLiter,
+            fuel_price: settings.fuelPrice,
+            active_platforms: settings.activePlatforms,
+            transport_mode: settings.transportMode,
+            dashboard_mode: settings.dashboardMode,
+            fixed_costs: settings.fixedCosts,
+            current_vehicle_profile_id: settings.currentVehicleProfileId,
+            vehicle_profiles: settings.vehicleProfiles
           }).eq('id', user.id);
           if (error) console.error('[Store] Sync error (settings):', error);
           set({ syncStatus: error ? 'offline' : 'synced' });
@@ -352,7 +356,9 @@ export const useDriverStore = create<DriverState>()(
             active_platforms: settings.activePlatforms,
             transport_mode: settings.transportMode,
             dashboard_mode: settings.dashboardMode,
-            fixed_costs: settings.fixedCosts
+            fixed_costs: settings.fixedCosts,
+            current_vehicle_profile_id: settings.currentVehicleProfileId,
+            vehicle_profiles: settings.vehicleProfiles
           });
 
           // 2. Fetch latest data
@@ -382,7 +388,9 @@ export const useDriverStore = create<DriverState>()(
               activePlatforms: profile.active_platforms || ['uber_car'],
               transportMode: profile.transport_mode || 'car',
               dashboardMode: profile.dashboard_mode || 'merged',
-              fixedCosts: profile.fixed_costs
+              fixedCosts: profile.fixed_costs,
+              currentVehicleProfileId: profile.current_vehicle_profile_id,
+              vehicleProfiles: profile.vehicle_profiles
             };
           }
 

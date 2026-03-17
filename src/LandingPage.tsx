@@ -104,12 +104,12 @@ export const LandingPage = () => {
             
             <h1 className="text-6xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[0.85] mb-10 text-white">
               Controle total. <br />
-              <span className="text-zinc-500">Lucro máximo.</span>
+              <span className="text-emerald-500">Lucro real.</span>
             </h1>
             
             <p className="text-lg md:text-xl text-zinc-400 mb-14 max-w-2xl mx-auto leading-relaxed font-medium">
-              A plataforma minimalista para motoristas de Uber, 99 e entregadores. 
-              Gerencie faturamento, despesas e performance sem complicações.
+              A ferramenta definitiva para motoristas de Uber e 99. 
+              Gerencie seus ganhos brutos, deduza despesas e saiba seu lucro líquido real por ciclo de 24h.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
@@ -142,18 +142,18 @@ export const LandingPage = () => {
           <div className="grid md:grid-cols-3 gap-8">
             <FeatureCard 
               icon={LayoutDashboard}
-              title="Ride Tracking"
-              description="Registre cada corrida com um toque. Acompanhe seu progresso diário em tempo real."
+              title="Ciclos de 24h"
+              description="Controle sua jornada por ciclos. Inicie e feche turnos para ver seu desempenho exato."
             />
             <FeatureCard 
               icon={Receipt}
-              title="Expense Tracking"
-              description="Combustível, manutenção, alimentação. Saiba exatamente quanto custa cada quilômetro."
+              title="Gestão de Custos"
+              description="Diferencie custos fixos (aluguel/seguro) de despesas variáveis (combustível/comida)."
             />
             <FeatureCard 
-              icon={FileText}
-              title="Earnings Reports"
-              description="Relatórios detalhados de faturamento bruto e líquido. Tome decisões baseadas em dados."
+              icon={Car}
+              title="Perfil do Veículo"
+              description="Cadastre seu carro e vincule todos os custos automaticamente ao seu faturamento."
             />
           </div>
         </div>
