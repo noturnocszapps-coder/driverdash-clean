@@ -56,6 +56,8 @@ export interface Cycle {
   uber_km?: number;
   noventanove_km?: number;
   indriver_km?: number;
+  vehicle_id?: string;
+  vehicle_name?: string;
 }
 
 export interface WorkLog {
@@ -218,16 +220,16 @@ export interface DriverState {
   setSyncStatus: (status: SyncStatus) => void;
   
   // Cycle methods
-  startCycle: () => string;
-  closeCycle: (id: string) => void;
-  updateCycle: (id: string, data: Partial<Cycle>) => void;
+  startCycle: () => Promise<string>;
+  closeCycle: (id: string) => Promise<void>;
+  updateCycle: (id: string, data: Partial<Cycle>) => Promise<void>;
   addCycleAmount: (id: string, platform: 'uber' | 'noventanove' | 'indriver' | 'extra', amount: number) => void;
   checkAndCloseCycles: () => void;
 
-  addExpense: (expense: Omit<Expense, 'id'>) => void;
-  addFueling: (fueling: Omit<Fueling, 'id'>) => void;
-  addMaintenance: (maintenance: Omit<Maintenance, 'id'>) => void;
-  updateSettings: (settings: Partial<UserSettings>) => void;
+  addExpense: (expense: Omit<Expense, 'id'>) => Promise<void>;
+  addFueling: (fueling: Omit<Fueling, 'id'>) => Promise<void>;
+  addMaintenance: (maintenance: Omit<Maintenance, 'id'>) => Promise<void>;
+  updateSettings: (settings: Partial<UserSettings>) => Promise<void>;
   updateTracking: (tracking: Partial<TrackingSession>) => void;
   importData: (data: { cycles?: Cycle[], expenses?: Expense[], fuelings?: Fueling[], maintenances?: Maintenance[], settings?: Partial<UserSettings> }) => void;
   syncData: () => Promise<void>;

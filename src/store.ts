@@ -41,8 +41,8 @@ export const useDriverStore = create<DriverState>()(
       setUser: (user) => set({ user }),
       setSyncStatus: (syncStatus) => set({ syncStatus }),
       
-      startCycle: () => {
-        const { user, cycles } = get();
+      startCycle: async () => {
+        const { user, cycles, settings } = get();
         const openCycle = cycles.find(c => c.status === 'open');
         if (openCycle) return openCycle.id;
 
@@ -63,19 +63,20 @@ export const useDriverStore = create<DriverState>()(
           noventanove_km: 0,
           indriver_km: 0,
           status: 'open' as const,
+          vehicle_id: settings.currentVehicleProfileId,
+          vehicle_name: settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId)?.name || settings.vehicle
         };
 
         set((state) => ({ cycles: [...state.cycles, newCycle] }));
 
         if (user && isSupabaseConfigured) {
           set({ syncStatus: 'syncing' });
-          supabase.from('cycles').insert(newCycle).then(({ error }) => {
-            if (error) console.error('[Store] Sync error (start cycle):', error);
-            set({ syncStatus: error ? 'offline' : 'synced' });
-            setTimeout(() => {
-              if (get().syncStatus === 'synced') set({ syncStatus: 'idle' });
-            }, 3000);
-          });
+          const { error } = await supabase.from('cycles').insert(newCycle);
+          if (error) console.error('[Store] Sync error (start cycle):', error);
+          set({ syncStatus: error ? 'offline' : 'synced' });
+          setTimeout(() => {
+            if (get().syncStatus === 'synced') set({ syncStatus: 'idle' });
+          }, 3000);
         }
 
         return id;
@@ -148,6 +149,8 @@ export const useDriverStore = create<DriverState>()(
               uber_km: cycle.uber_km,
               noventanove_km: cycle.noventanove_km,
               indriver_km: cycle.indriver_km,
+              vehicle_id: cycle.vehicle_id,
+              vehicle_name: cycle.vehicle_name,
               end_time: cycle.end_time,
               status: cycle.status
             })
@@ -366,6 +369,8 @@ export const useDriverStore = create<DriverState>()(
               uber_km: c.uber_km,
               noventanove_km: c.noventanove_km,
               indriver_km: c.indriver_km,
+              vehicle_id: c.vehicle_id,
+              vehicle_name: c.vehicle_name,
               status: c.status
             })));
           }
@@ -470,6 +475,8 @@ export const useDriverStore = create<DriverState>()(
               uber_km: Number(c.uber_km || 0),
               noventanove_km: Number(c.noventanove_km || 0),
               indriver_km: Number(c.indriver_km || 0),
+              vehicle_id: c.vehicle_id,
+              vehicle_name: c.vehicle_name,
               status: c.status
             }));
           }
