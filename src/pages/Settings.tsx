@@ -52,7 +52,21 @@ export const Settings = () => {
     return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
   }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
 
+  const [showVehicleSelector, setShowVehicleSelector] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSelectVehicle = (id: string) => {
+    const selected = settings.vehicleProfiles?.find(v => v.id === id);
+    if (!selected) return;
+
+    updateSettings({
+      currentVehicleProfileId: id,
+      fixedCosts: selected.fixedCosts,
+      transportMode: selected.category,
+      vehicle: selected.name
+    });
+    setShowVehicleSelector(false);
+  };
 
   const handleSaveVehicle = () => {
     if (!currentVehicle) return;
@@ -75,10 +89,14 @@ export const Settings = () => {
 
     if (confirm('Tem certeza que deseja excluir este veículo?')) {
       const updated = settings.vehicleProfiles?.filter(v => v.id !== id);
-      const nextId = updated?.[0]?.id;
+      const nextVehicle = updated?.[0];
+      
       updateSettings({ 
         vehicleProfiles: updated,
-        currentVehicleProfileId: nextId
+        currentVehicleProfileId: nextVehicle?.id,
+        fixedCosts: nextVehicle?.fixedCosts,
+        transportMode: nextVehicle?.category,
+        vehicle: nextVehicle?.name || ''
       });
     }
   };
@@ -110,7 +128,10 @@ export const Settings = () => {
 
     updateSettings({
       vehicleProfiles: [...(settings.vehicleProfiles || []), newVehicle],
-      currentVehicleProfileId: newVehicle.id
+      currentVehicleProfileId: newVehicle.id,
+      fixedCosts: newVehicle.fixedCosts,
+      transportMode: newVehicle.category,
+      vehicle: newVehicle.name
     });
     setIsAddingVehicle(false);
   };
@@ -120,7 +141,10 @@ export const Settings = () => {
     const updatedProfiles = settings.vehicleProfiles?.map(v => 
       v.id === settings.currentVehicleProfileId ? { ...v, fixedCosts: { ...v.fixedCosts, ...newFixedCosts } } : v
     );
-    updateSettings({ vehicleProfiles: updatedProfiles });
+    updateSettings({ 
+      vehicleProfiles: updatedProfiles,
+      fixedCosts: { ...settings.fixedCosts, ...newFixedCosts }
+    });
   };
 
   const handleClearData = async () => {
@@ -287,28 +311,30 @@ export const Settings = () => {
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
           <CardContent className="p-6 space-y-6">
             {/* Vehicle Selector */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1 space-y-1.5">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Veículo Ativo</label>
-                <Select
-                  value={settings.currentVehicleProfileId || ''}
-                  onChange={e => updateSettings({ currentVehicleProfileId: e.target.value })}
-                  className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
-                >
-                  {settings.vehicleProfiles?.map(v => (
-                    <option key={v.id} value={v.id}>{v.name} ({v.model || v.brand || 'Sem modelo'})</option>
-                  ))}
-                </Select>
-              </div>
-              {settings.vehicleProfiles && settings.vehicleProfiles.length > 1 && (
-                <Button 
-                  variant="ghost" 
-                  onClick={() => handleDeleteVehicle(settings.currentVehicleProfileId!)}
-                  className="h-12 w-12 p-0 text-red-500 hover:bg-red-500/10 rounded-2xl"
-                >
-                  <Trash2 size={20} />
-                </Button>
-              )}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Veículo Ativo</label>
+              <button
+                onClick={() => setShowVehicleSelector(true)}
+                className="w-full h-16 px-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl flex items-center justify-between group hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all border border-zinc-100 dark:border-zinc-800/50 active:scale-[0.98]"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                    <Car size={20} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-sm font-black tracking-tight">
+                      {currentVehicle?.name || 'Selecionar Veículo'}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                      {currentVehicle ? `${currentVehicle.brand} ${currentVehicle.model}` : 'Nenhum veículo ativo'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-zinc-400 group-hover:text-emerald-500 transition-colors">
+                  <span className="text-[10px] font-black uppercase tracking-widest">Trocar</span>
+                  <ChevronDown size={18} />
+                </div>
+              </button>
             </div>
 
             {currentVehicle && (
@@ -320,7 +346,10 @@ export const Settings = () => {
                       value={currentVehicle.name}
                       onChange={e => {
                         const updated = settings.vehicleProfiles?.map(v => v.id === currentVehicle.id ? { ...v, name: e.target.value } : v);
-                        updateSettings({ vehicleProfiles: updated });
+                        updateSettings({ 
+                          vehicleProfiles: updated,
+                          vehicle: e.target.value
+                        });
                       }}
                       className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
                     />
@@ -344,7 +373,10 @@ export const Settings = () => {
                     value={currentVehicle.type}
                     onChange={e => {
                       const updated = settings.vehicleProfiles?.map(v => v.id === currentVehicle.id ? { ...v, type: e.target.value as any, fixedCosts: { ...v.fixedCosts, vehicleType: e.target.value as any } } : v);
-                      updateSettings({ vehicleProfiles: updated });
+                      updateSettings({ 
+                        vehicleProfiles: updated,
+                        fixedCosts: { ...settings.fixedCosts, vehicleType: e.target.value as any }
+                      });
                     }}
                     className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
                   >
@@ -544,6 +576,121 @@ export const Settings = () => {
           </CardContent>
         </Card>
       </section>
+
+      {/* Vehicle Selector Bottom Sheet */}
+      <AnimatePresence>
+        {showVehicleSelector && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowVehicleSelector(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100]"
+            />
+            <motion.div 
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed inset-x-0 bottom-0 bg-white dark:bg-zinc-900 z-[110] rounded-t-[2.5rem] p-8 pb-12 max-h-[80vh] overflow-y-auto"
+            >
+              <div className="w-12 h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded-full mx-auto mb-8" />
+              
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h3 className="text-2xl font-black tracking-tighter">Meus Veículos</h3>
+                  <p className="text-xs text-zinc-500 font-medium">Selecione o veículo que está usando agora</p>
+                </div>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => {
+                    setShowVehicleSelector(false);
+                    setIsAddingVehicle(true);
+                  }}
+                  className="text-emerald-500 font-black uppercase tracking-widest text-[10px]"
+                >
+                  <Plus size={14} className="mr-1" /> Novo
+                </Button>
+              </div>
+
+              <div className="space-y-3">
+                {settings.vehicleProfiles?.map(v => (
+                  <button
+                    key={v.id}
+                    onClick={() => handleSelectVehicle(v.id)}
+                    className={cn(
+                      "w-full p-4 rounded-2xl flex items-center justify-between transition-all border-2",
+                      settings.currentVehicleProfileId === v.id
+                        ? "bg-emerald-500/10 border-emerald-500"
+                        : "bg-zinc-50 dark:bg-zinc-800/50 border-transparent hover:border-zinc-200 dark:hover:border-zinc-700"
+                    )}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        "w-12 h-12 rounded-xl flex items-center justify-center",
+                        settings.currentVehicleProfileId === v.id ? "bg-emerald-500 text-zinc-950" : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
+                      )}>
+                        <Car size={24} />
+                      </div>
+                      <div className="text-left">
+                        <p className="font-black tracking-tight">{v.name}</p>
+                        <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                          {v.brand} {v.model} • {v.year}
+                        </p>
+                      </div>
+                    </div>
+                    {settings.currentVehicleProfileId === v.id ? (
+                      <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center text-zinc-950">
+                        <CheckCircle2 size={16} />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        {settings.vehicleProfiles && settings.vehicleProfiles.length > 1 && (
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteVehicle(v.id);
+                            }}
+                            className="h-8 w-8 p-0 text-zinc-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg"
+                          >
+                            <Trash2 size={16} />
+                          </Button>
+                        )}
+                        <ChevronRight size={18} className="text-zinc-300" />
+                      </div>
+                    )}
+                  </button>
+                ))}
+
+                {(!settings.vehicleProfiles || settings.vehicleProfiles.length === 0) && (
+                  <div className="text-center py-12 space-y-4">
+                    <div className="w-16 h-16 bg-zinc-100 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 mx-auto">
+                      <Car size={32} />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="font-bold">Nenhum veículo encontrado</p>
+                      <p className="text-xs text-zinc-500">Cadastre seu primeiro veículo para começar</p>
+                    </div>
+                    <Button 
+                      onClick={() => {
+                        setShowVehicleSelector(false);
+                        setIsAddingVehicle(true);
+                      }}
+                      className="bg-emerald-500 text-zinc-950 font-black"
+                    >
+                      Adicionar Veículo
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Add Vehicle Modal */}
       <AnimatePresence>
