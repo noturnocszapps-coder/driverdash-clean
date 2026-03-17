@@ -52,6 +52,37 @@ export const Settings = () => {
     return settings.vehicleProfiles?.find(v => v.id === settings.currentVehicleProfileId);
   }, [settings.vehicleProfiles, settings.currentVehicleProfileId]);
 
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  const handleSaveVehicle = () => {
+    if (!currentVehicle) return;
+    
+    // Ensure all fields are persisted to the store
+    updateSettings({
+      vehicleProfiles: settings.vehicleProfiles,
+      currentVehicleProfileId: settings.currentVehicleProfileId
+    });
+
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
+  };
+
+  const handleDeleteVehicle = (id: string) => {
+    if (settings.vehicleProfiles && settings.vehicleProfiles.length <= 1) {
+      alert('Você precisa ter pelo menos um veículo cadastrado.');
+      return;
+    }
+
+    if (confirm('Tem certeza que deseja excluir este veículo?')) {
+      const updated = settings.vehicleProfiles?.filter(v => v.id !== id);
+      const nextId = updated?.[0]?.id;
+      updateSettings({ 
+        vehicleProfiles: updated,
+        currentVehicleProfileId: nextId
+      });
+    }
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -182,9 +213,13 @@ export const Settings = () => {
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Meta Diária (R$)</label>
                 <Input 
                   type="number"
-                  value={settings.dailyGoal} 
-                  onChange={e => updateSettings({ dailyGoal: Number(e.target.value) })}
+                  value={settings.dailyGoal === 0 ? '' : settings.dailyGoal} 
+                  onChange={e => {
+                    const val = e.target.value;
+                    updateSettings({ dailyGoal: val === '' ? 0 : Number(val) });
+                  }}
                   className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-black text-xl"
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -204,8 +239,8 @@ export const Settings = () => {
                 onChange={e => updateSettings({ transportMode: e.target.value as any })}
                 className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
               >
-                <option value="car">Uber / 99 Carro</option>
-                <option value="motorcycle">Uber / 99 Moto</option>
+                <option value="car">Uber / 99 / inDrive Carro</option>
+                <option value="motorcycle">Uber / 99 / inDrive Moto</option>
               </Select>
             </div>
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl border border-zinc-100 dark:border-zinc-800">
@@ -252,17 +287,28 @@ export const Settings = () => {
         <Card className="border-none bg-white dark:bg-zinc-900 shadow-sm overflow-hidden">
           <CardContent className="p-6 space-y-6">
             {/* Vehicle Selector */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Veículo Ativo</label>
-              <Select
-                value={settings.currentVehicleProfileId || ''}
-                onChange={e => updateSettings({ currentVehicleProfileId: e.target.value })}
-                className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
-              >
-                {settings.vehicleProfiles?.map(v => (
-                  <option key={v.id} value={v.id}>{v.name} ({v.model || v.brand || 'Sem modelo'})</option>
-                ))}
-              </Select>
+            <div className="flex items-end gap-2">
+              <div className="flex-1 space-y-1.5">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Veículo Ativo</label>
+                <Select
+                  value={settings.currentVehicleProfileId || ''}
+                  onChange={e => updateSettings({ currentVehicleProfileId: e.target.value })}
+                  className="h-12 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-2xl font-bold"
+                >
+                  {settings.vehicleProfiles?.map(v => (
+                    <option key={v.id} value={v.id}>{v.name} ({v.model || v.brand || 'Sem modelo'})</option>
+                  ))}
+                </Select>
+              </div>
+              {settings.vehicleProfiles && settings.vehicleProfiles.length > 1 && (
+                <Button 
+                  variant="ghost" 
+                  onClick={() => handleDeleteVehicle(settings.currentVehicleProfileId!)}
+                  className="h-12 w-12 p-0 text-red-500 hover:bg-red-500/10 rounded-2xl"
+                >
+                  <Trash2 size={20} />
+                </Button>
+              )}
             </div>
 
             {currentVehicle && (
@@ -374,6 +420,36 @@ export const Settings = () => {
                       {formatCurrency(calculateMonthlyFixedCost(currentVehicle.fixedCosts))}
                     </p>
                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-2">
+                  <Button 
+                    onClick={handleSaveVehicle}
+                    className={cn(
+                      "w-full h-14 font-black text-lg rounded-2xl transition-all duration-300",
+                      saveSuccess 
+                        ? "bg-emerald-500 text-zinc-950" 
+                        : "bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white hover:bg-emerald-500 hover:text-zinc-950"
+                    )}
+                  >
+                    {saveSuccess ? (
+                      <span className="flex items-center gap-2">
+                        <CheckCircle2 size={20} /> Perfil Salvo
+                      </span>
+                    ) : (
+                      "Salvar Veículo"
+                    )}
+                  </Button>
+                  
+                  {saveSuccess && (
+                    <motion.p 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="text-[10px] text-center font-black text-emerald-500 uppercase tracking-widest"
+                    >
+                      Perfil do veículo salvo com sucesso
+                    </motion.p>
+                  )}
                 </div>
               </div>
             )}
@@ -610,13 +686,16 @@ const SectionHeader = ({ icon: Icon, title }: any) => (
   </div>
 );
 
-const CostInput = ({ label, value, onChange }: { label: string, value?: number, onChange: (val: number) => void }) => (
+const CostInput = ({ label, value, onChange }: { label: string, value?: number, onChange: (val: number | undefined) => void }) => (
   <div className="space-y-1.5">
     <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">{label}</label>
     <Input 
       type="number"
-      value={value || ''} 
-      onChange={e => onChange(Number(e.target.value))}
+      value={value === undefined ? '' : value} 
+      onChange={e => {
+        const val = e.target.value;
+        onChange(val === '' ? undefined : Number(val));
+      }}
       className="h-10 bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl font-bold text-sm"
       placeholder="0,00"
     />
@@ -645,6 +724,17 @@ const PatchNotes = () => {
   const [expanded, setExpanded] = useState<string | null>('2.1.0');
 
   const versions = [
+    {
+      id: '2.1.1',
+      date: '17 Mar, 2026',
+      notes: [
+        'Correção no salvamento do perfil do veículo.',
+        'Persistência de sessão aprimorada (evita logout ao atualizar).',
+        'Melhoria nos campos numéricos (permite apagar valores).',
+        'Adição da categoria inDrive nos seletores.',
+        'Ajustes de estabilidade e performance no painel.'
+      ]
+    },
     {
       id: '2.1.0',
       date: '16 Mar, 2026',

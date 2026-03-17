@@ -221,8 +221,11 @@ const ExpenseInput = ({ icon: Icon, label, value, onChange }: any) => (
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-300">R$</span>
         <input 
           type="number"
-          value={value || ''}
-          onChange={(e) => onChange(Number(e.target.value))}
+          value={value === 0 ? '' : value}
+          onChange={(e) => {
+            const val = e.target.value;
+            onChange(val === '' ? 0 : Number(val));
+          }}
           placeholder="0,00"
           className="w-full bg-zinc-50 dark:bg-zinc-800/50 border-none rounded-xl py-2.5 pl-8 pr-3 text-right font-black text-sm focus:ring-2 focus:ring-emerald-500 transition-all"
         />
