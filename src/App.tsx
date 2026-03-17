@@ -43,33 +43,51 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   const { setUser, setSyncStatus } = useDriverStore();
+  const [isAuthReady, setIsAuthReady] = React.useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!isSupabaseConfigured) {
+      setIsAuthReady(true);
+      return;
+    }
 
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('[App] Auth session error:', error.message);
-        if (error.message.includes('Refresh Token Not Found') || error.message.includes('refresh_token_not_found')) {
-          supabase.auth.signOut();
+    const checkSession = async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('[App] Auth session error:', error.message);
+          // If refresh token is invalid, clear everything
+          if (
+            error.message.includes('Refresh Token Not Found') || 
+            error.message.includes('refresh_token_not_found') ||
+            error.message.includes('Invalid Refresh Token')
+          ) {
+            await supabase.auth.signOut();
+            setUser(null);
+          }
+        } else if (session?.user) {
+          setUser({
+            id: session.user.id,
+            email: session.user.email!,
+            name: session.user.user_metadata.name,
+          });
+          setSyncStatus('online');
+        } else {
           setUser(null);
+          setSyncStatus('offline');
         }
-        return;
+      } catch (err) {
+        console.error('[App] Unexpected auth error:', err);
+      } finally {
+        setIsAuthReady(true);
       }
+    };
 
-      if (session?.user) {
-        setUser({
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata.name,
-        });
-        setSyncStatus('online');
-      }
-    });
+    checkSession();
 
     // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log('[App] Auth event:', event);
       
       if (session?.user) {
@@ -83,10 +101,21 @@ export default function App() {
         setUser(null);
         setSyncStatus('offline');
       }
+      
+      // Ensure we mark auth as ready if it wasn't already
+      setIsAuthReady(true);
     });
 
     return () => subscription.unsubscribe();
   }, [setUser, setSyncStatus]);
+
+  if (!isAuthReady) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Router>
