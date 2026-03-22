@@ -15,60 +15,10 @@ import { supabase, isSupabaseConfigured } from './lib/supabase';
 import { useDriverStore } from './store';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
-type AppErrorBoundaryState = {
-  hasError: boolean;
-  error: Error | null;
-};
 
-class AppErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  AppErrorBoundaryState
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
-  }
-
-  static getDerivedStateFromError(error: Error): AppErrorBoundaryState {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('[AppErrorBoundary] error:', error);
-    console.error('[AppErrorBoundary] errorInfo:', errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
-          <div className="w-full max-w-lg rounded-2xl border border-red-500/30 bg-zinc-900 p-6 shadow-2xl">
-            <h1 className="text-2xl font-bold text-red-400 mb-3">Erro no app</h1>
-            <p className="text-zinc-400 mb-4">
-              O DriverDash encontrou um erro ao renderizar esta tela.
-            </p>
-
-            <div className="rounded-xl bg-zinc-950 border border-zinc-800 p-4 overflow-auto">
-              <p className="text-sm text-zinc-300 whitespace-pre-wrap break-words">
-                {this.state.error?.message || 'Erro desconhecido'}
-              </p>
-            </div>
-
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-5 w-full rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-black"
-            >
-              Recarregar app
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
-}
-
+// ==============================
+// Layout
+// ==============================
 const Layout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const isLanding = location.pathname === '/';
@@ -96,10 +46,38 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
   );
 };
 
+
+// ==============================
+// Core App (com proteção)
+// ==============================
 function AppContent() {
   const { setUser, setSyncStatus } = useDriverStore();
   const [isAuthReady, setIsAuthReady] = React.useState(false);
 
+  // 🔥 LIMPEZA DE CACHE + SERVICE WORKER (CRÍTICO)
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          registration.unregister().catch((err) => {
+            console.error('[App] Failed to unregister SW:', err);
+          });
+        });
+      });
+    }
+
+    if ('caches' in window) {
+      caches.keys().then((keys) => {
+        keys.forEach((key) => {
+          caches.delete(key).catch((err) => {
+            console.error('[App] Failed to delete cache:', err);
+          });
+        });
+      });
+    }
+  }, []);
+
+  // 🔐 AUTH FLOW
   useEffect(() => {
     if (!isSupabaseConfigured) {
       setIsAuthReady(true);
@@ -108,10 +86,7 @@ function AppContent() {
 
     const checkSession = async () => {
       try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
           console.error('[App] Auth session error:', error.message);
@@ -124,6 +99,7 @@ function AppContent() {
             await supabase.auth.signOut();
             setUser(null);
           }
+
         } else if (session?.user) {
           setUser({
             id: session.user.id,
@@ -131,10 +107,12 @@ function AppContent() {
             name: session.user.user_metadata.name,
           });
           setSyncStatus('online');
+
         } else {
           setUser(null);
           setSyncStatus('offline');
         }
+
       } catch (err) {
         console.error('[App] Unexpected auth error:', err);
       } finally {
@@ -144,11 +122,7 @@ function AppContent() {
 
     checkSession();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('[App] Auth event:', event);
-
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -165,8 +139,10 @@ function AppContent() {
     });
 
     return () => subscription.unsubscribe();
+
   }, [setUser, setSyncStatus]);
 
+  // ⏳ LOADING
   if (!isAuthReady) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -175,9 +151,11 @@ function AppContent() {
     );
   }
 
+  // 🚀 APP
   return (
     <Router>
       <SyncManager />
+
       <Layout>
         <Routes>
           <Route path="/" element={<LandingPage />} />
@@ -185,6 +163,7 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
 
+          {/* PROTEGIDAS */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/faturamento" element={<ProtectedRoute><Faturamento /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
@@ -197,10 +176,54 @@ function AppContent() {
   );
 }
 
+
+// ==============================
+// ERROR BOUNDARY (ANTI TELA BRANCA)
+// ==============================
+class ErrorBoundary extends React.Component<any, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.error('[App] Critical error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white text-center p-6">
+          <h1 className="text-xl font-bold mb-2">Erro ao carregar o app</h1>
+          <p className="text-sm text-zinc-400 mb-4">
+            Tente atualizar a página
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-emerald-500 text-black px-4 py-2 rounded-xl font-bold"
+          >
+            Recarregar
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+
+// ==============================
+// EXPORT FINAL
+// ==============================
 export default function App() {
   return (
-    <AppErrorBoundary>
+    <ErrorBoundary>
       <AppContent />
-    </AppErrorBoundary>
+    </ErrorBoundary>
   );
 }
